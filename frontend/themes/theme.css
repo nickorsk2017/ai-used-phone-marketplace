@@ -1,0 +1,32 @@
+/*
+ * HeroUI v3 theme of the application.
+ * Replace the variables below with the export of the HeroUI Theme Builder.
+ * Components use these tokens only: see docs/frontend/DESIGN.md#ui.
+ */
+
+:root,
+.light,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --radius: 0.75rem;
+  --field-radius: calc(var(--radius) * 1.25);
+
+  --background: oklch(0.9761 0.0034 247.86);
+  --foreground: oklch(0.2101 0.0318 264.66);
+
+  --surface: oklch(100% 0 0);
+  --surface-foreground: var(--foreground);
+
+  --muted: oklch(0.5544 0.0407 257.42);
+
+  --accent: oklch(0.5461 0.1495 163.04);
+  --accent-foreground: oklch(0.9911 0 0);
+
+  --field-background: oklch(100% 0 0);
+  --field-border: oklch(0.9288 0.0126 255.51);
+  --field-border-width: 1px;
+
+  --border: oklch(0.9288 0.0126 255.51);
+  --focus: var(--accent);
+}

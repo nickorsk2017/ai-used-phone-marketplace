@@ -1,0 +1,57 @@
+import { API_STUB_ENABLED } from "@/config/api";
+import {
+  myListingsResponseSchema,
+  phoneContactSchema,
+  phoneDescriptionSchema,
+  phoneSchema,
+} from "@/schemas/phoneSchemas";
+import { apiRequest, errorResponse, successResponse } from "@/utils/apiClient";
+import { getStubContact, getStubPhone } from "./stubs/phoneStub";
+
+const NOT_FOUND_STATUSES = new Set([404, 422]);
+
+function phonePath(id: string): string {
+  return `/api/phones/${encodeURIComponent(id)}`;
+}
+
+export const PhoneService = {
+  async getById(id: string): Promise<Api.Response<Entity.Phone | null>> {
+    if (API_STUB_ENABLED) {
+      return successResponse(getStubPhone(id));
+    }
+    const response = await apiRequest(phonePath(id), { schema: phoneSchema });
+    if (!response.success && NOT_FOUND_STATUSES.has(response.status)) {
+      return successResponse(null);
+    }
+    return response;
+  },
+
+  async getContact(id: string): Promise<Api.Response<Entity.PhoneContact>> {
+    if (API_STUB_ENABLED) {
+      const contact = getStubContact(id);
+      return contact ? successResponse(contact) : errorResponse(404, "Contact not found");
+    }
+    return apiRequest(`${phonePath(id)}/contact`, { schema: phoneContactSchema });
+  },
+
+  async getMyListings(): Promise<Api.Response<Entity.Phone[]>> {
+    const response = await apiRequest("/api/my-listings", { schema: myListingsResponseSchema });
+    return response.success ? successResponse(response.data.listings) : response;
+  },
+
+  generateDescription(modelName: string): Promise<Api.Response<Entity.PhoneDescription>> {
+    return apiRequest("/api/phones/description", {
+      method: "POST",
+      body: { model_name: modelName },
+      schema: phoneDescriptionSchema,
+    });
+  },
+
+  create(body: Api.CreatePhoneRequest): Promise<Api.Response<Entity.Phone>> {
+    return apiRequest("/api/phones", { method: "POST", body, schema: phoneSchema });
+  },
+
+  delete(id: string): Promise<Api.Response<void>> {
+    return apiRequest(phonePath(id), { method: "DELETE" });
+  },
+};

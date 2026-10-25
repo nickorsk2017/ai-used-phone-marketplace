@@ -1,0 +1,15 @@
+export const testPhone: Entity.Phone = {
+  id: "7f1c2a3e-0000-4000-8000-000000000001",
+  model_code: "A2483",
+  model_name: "iPhone 13 Pro",
+  os: "ios",
+  camera_megapixels: 12,
+  battery_capacity: 3095,
+  display_size: 6.1,
+  description: "iPhone 13 Pro with a 6.1-inch ProMotion display. ".repeat(6).trim(),
+  condition: "like_new",
+  condition_note: "No scratches, original box.",
+  price: 450,
+  created_at: "2026-10-01T10:00:00Z",
+  updated_at: "2026-10-01T10:00:00Z",
+};

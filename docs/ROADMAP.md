@@ -20,6 +20,7 @@ Product features out of scope for v1.0: see [TASK.md](TASK.md#out-of-scope-for-v
 - Sitemap of the Phone details pages (`app/sitemap.ts`) with a Backend endpoint that lists all active listings with their update dates.
 - Cache of `POST /api/phones/description` results by model. The same model name (for example, `iPhone 16`) always returns the same description and model data, without a new LLM call.
 - Model catalog instead of the model code from the LLM: see [RAG.md](ai/RAG.md#production-model-catalog).
+- Design System for the Frontend on Atomic Design: atoms, molecules and organisms in `frontend/ui` on top of the HeroUI tokens from `themes/theme.css`. Storybook as the component catalog with stories for each state and visual regression tests.
 
 ## Architecture under growth
 

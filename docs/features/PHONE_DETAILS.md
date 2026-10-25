@@ -4,11 +4,9 @@ The public page of a single listing. It is the only page that requires SEO, whic
 
 ## Route
 
-`/phones/[id]/[slug]`
+`/phones/[id]`
 
-- `id`: listing ID from PostgreSQL. It is the only value used to find the listing.
-- `slug`: model name in kebab case, for example `iphone-13-pro`. It is used for readable URLs only.
-- If the `slug` does not match the current model name, the page returns a 308 redirect to the correct URL. This keeps one URL per listing.
+- `id`: listing ID from PostgreSQL. It is the only value in the URL and the only value used to find the listing.
 
 ## Page Content
 
@@ -49,7 +47,7 @@ Generated in `generateMetadata` from the listing data:
 | --- | --- |
 | `title` | `{Model}, {Condition}, ${Price}` |
 | `description` | First 155 characters of the model description |
-| `canonical` | `/phones/{id}/{slug}` |
+| `canonical` | `/phones/{id}` |
 | `og:title`, `og:description`, `og:url`, `og:type` | Same as above, `og:type = product` |
 
 ### Structured Data
@@ -70,16 +68,15 @@ The page includes JSON-LD of type `Product` with an `Offer` (`price`, `priceCurr
 ## Errors
 
 - Listing not found or deleted: `notFound()`, HTTP 404. The page is removed from the index by search engines.
-- Backend unavailable: the cached page is served if it exists. Otherwise the error page is shown with HTTP 500.
+- Backend unavailable: the cached page is served if it exists. Otherwise the error page is shown with HTTP 500: see [DESIGN.md](../frontend/DESIGN.md#errors).
 
 ## Acceptance Criteria
 
 1. The server HTML (without JavaScript) contains the model name, parameters, price, condition, description and condition note.
 2. The server HTML does not contain the WhatsApp number.
 3. The JSON-LD passes the Google Rich Results Test without errors.
-4. A wrong `slug` redirects to the canonical URL.
-5. A deleted listing returns HTTP 404 no later than 60 seconds after deletion.
-6. Lighthouse SEO score is 100 for the page.
+4. A deleted listing returns HTTP 404 no later than 60 seconds after deletion.
+5. Lighthouse SEO score is 100 for the page.
 
 ## Tradeoffs
 
