@@ -8,4 +8,6 @@ declare namespace Api {
     first_name: string;
     last_name: string;
   }
+
+  type UpdateUserRequest = CreateUserRequest;
 }

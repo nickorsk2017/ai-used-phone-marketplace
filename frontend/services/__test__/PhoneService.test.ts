@@ -24,6 +24,7 @@ describe("PhoneService", () => {
     expect(await PhoneService.getContact(STUB_PHONE_IDS[0])).toMatchObject({ success: true, data: { whatsapp: expect.stringMatching(/^\+\d+$/) } });
     expect(await PhoneService.getById("missing")).toMatchObject({ success: true, data: null });
     expect(await PhoneService.getContact("missing")).toMatchObject({ success: false, status: 404 });
+    expect(await PhoneService.getMyListings()).toEqual({ success: true, data: [], errorText: "" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

@@ -56,7 +56,14 @@ Data models of all Backend modules. Module responsibilities: [DESIGN.md](DESIGN.
 
 ## Migrations
 
-Each module has its own Alembic migrations according to DDD. Each module is a potential microservice. A module can be moved to a separate service without changing the overall architecture.
+The Backend has one Alembic migration chain for all modules: `backend/alembic.ini` and `backend/migrations/`. Reason and limitations: see [Tradeoffs](#tradeoffs).
 
-- Each module uses its own Alembic version table.
+- Version table: `alembic_version`.
+- `backend/migrations/env.py` collects the metadata of every module with tables (`AuthBase.metadata`). A new module adds its Base there.
+- Revisions are numbered: `0001_create_users.py`, `0002_<slug>.py`.
+- Commands: `make migrate` (up to head, also run by `make up-all`), `make migration MSG="<description>"` (autogenerate the next revision).
 - No foreign keys between tables of different modules. Modules reference each other by ID (`phones.user_id`).
+
+## Tradeoffs
+
+- One migration chain instead of a chain per module. Chosen for the PoC: one `alembic.ini`, one version table, one `make migrate`. Limitation: a module cannot be moved to a separate database together with its own migration history. Rejected: a chain per module with the version table `alembic_version_<module>`. It is restored when a module is moved to a separate service: see [DESIGN.md](../DESIGN.md#backend).

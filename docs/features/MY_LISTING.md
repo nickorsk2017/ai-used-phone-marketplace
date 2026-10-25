@@ -2,9 +2,17 @@
 
 The page requires a user. If there is no user in the browser session, the page first shows the user creation modal window: see [AUTH.md](../backend/AUTH.md#session-flow).
 
+## Edit Profile Flow
+
+1. When the user is loaded, the application header shows the user avatar with the initials and the full name after the navigation links, on every page. The "Add new phone" button stays in the My listings page header.
+2. The user clicks the avatar or the name. The user modal window of the [Session Flow](../backend/AUTH.md#session-flow) opens with the current values, the title `Edit your seller profile`, a close button and the "Save" button.
+3. The form is validated with the same rules as the user creation.
+4. The Frontend calls `PUT /api/users/{id}` with `whatsapp`, `first_name` and `last_name`: see [API.md](../backend/API.md).
+5. On success the header shows the updated name and the modal window closes. On error the form stays filled and shows `Could not save the profile. Please try again.`
+
 ## Add Phone Flow
 
-1. The user clicks the "Add new phone" button.
+1. The user clicks the "Add new phone" button in the page header. It is the only "Add new phone" button: the empty list shows only the text `You have no listings yet. Add your first phone for sale.`
 2. The user enters the model name.
 3. The Frontend calls `POST /api/phones/description`. The LLM returns the description and the model data: see [Description Response](#description-response).
 4. The user reviews the generated data and can edit the description and the specifications (camera, battery, display). The model name and the OS are not editable. The model code is not shown.

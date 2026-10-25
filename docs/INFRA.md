@@ -65,7 +65,16 @@ The image platform must match the VPS architecture (`linux/amd64` or `linux/arm6
 
 ### Application
 
-Rate limit in `modules/main` per IP and per user. Stricter limits apply to:
+Rate limit in `modules/main`, a separate limit for every module. A limit is a FastAPI dependency on the routers of the module. An exceeded limit returns 429 with `Retry-After`.
+
+| Module | Endpoints | Limit |
+| --- | --- | --- |
+| `modules/auth` | `/api/users/*` | 5 requests per 10 seconds per client IP, shared by all endpoints of the module |
+
+- The counters are stored in the memory of the process. With several Uvicorn workers every worker has its own counters. Shared storage: see [ROADMAP.md](ROADMAP.md#high-load).
+- The client IP comes from `X-Forwarded-For`: Caddy trusts the Cloudflare ranges and forwards the client IP, Uvicorn runs with `--proxy-headers --forwarded-allow-ips=<Caddy address>`. Without these settings all requests have the Caddy IP and share one limit.
+
+Stricter limits are planned for the other modules:
 
 - LLM endpoints (`/api/search`, `/api/phones/description`): protection against cost attacks on OpenAI.
 - `GET /api/phones/{id}/contact`: protection of WhatsApp numbers against scraping.
@@ -77,7 +86,16 @@ A monthly spending limit is set in OpenAI.
 
 - `make deploy`: pull the latest images and restart services on the VPS.
 - `make logs`: show service logs.
-- `make migrate`: apply Alembic migrations to Supabase.
+- `make migrate`: apply Alembic migrations. Other migration commands: see [SCHEMAS.md](backend/SCHEMAS.md#migrations).
+- `make up-all`
+- `make frontend-install`
+- `make frontend-build`
+- `make frontend-start`
+- `make frontend-dev`
+- `make backend-install`
+- `make backend-check`
+- `make backend-dev`
+- `make backend-test`
 
 ## Improvement
 

@@ -34,6 +34,7 @@ describe("MyListingsPage session flow", () => {
     await u.click(within(dialog).getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByText("You have no listings yet. Add your first phone for sale.")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add new phone" })).toHaveLength(1);
     expect(window.localStorage.getItem(USER_ID_STORAGE_KEY)).toBe(testUser.id);
     expect(requestBody(fetchMock.mock.calls[0]![1]!)).toEqual({
       first_name: "Ann",
@@ -71,6 +72,7 @@ describe("MyListingsPage session flow", () => {
       "/phones/p-1",
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Edit profile/ })).not.toBeInTheDocument();
   });
 
   it("removes a stale user_id on 404 and shows the user modal", async () => {

@@ -35,6 +35,9 @@ export const PhoneService = {
   },
 
   async getMyListings(): Promise<Api.Response<Entity.Phone[]>> {
+    if (API_STUB_ENABLED) {
+      return successResponse([]);
+    }
     const response = await apiRequest("/api/my-listings", { schema: myListingsResponseSchema });
     return response.success ? successResponse(response.data.listings) : response;
   },

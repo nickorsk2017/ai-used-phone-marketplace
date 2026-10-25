@@ -30,7 +30,7 @@ describe("MyListingsPage add phone flow", () => {
     const u = userEvent.setup();
     render(<MyListingsPage />);
     await screen.findByText("You have no listings yet. Add your first phone for sale.");
-    await u.click(screen.getAllByRole("button", { name: "Add new phone" })[0]!);
+    await u.click(screen.getByRole("button", { name: "Add new phone" }));
     const dialog = await screen.findByRole("dialog", { name: "Add new phone" });
     return { u, dialog, fetchMock };
   }

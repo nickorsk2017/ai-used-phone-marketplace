@@ -30,6 +30,7 @@ frontend/
 - `app`: Next.js App Router routes. Route files only compose components from `features`.
 - `config`: application constants and settings: API, application name and navigation, labels of the phone enums.
 - `features`: feature modules, one folder per page. Helpers used by one feature stay in its folder.
+  - `profile`: the user avatar and name in `AppHeader` and the edit profile modal: [MY_LISTING.md](../features/MY_LISTING.md#edit-profile-flow). Rendered by `app/layout.tsx` through the `actions` slot of `AppHeader`.
 - `mocks`: test data and helpers shared by tests: `testPhone`, `testPhoneDescription`, `testListing`, `testUser`, `jsonResponse`, `mockApi` (`fetch` stub with handlers by method and path).
 - `public`: static files.
 - `schemas`: Zod schemas, one file per schema group: API responses validated by the services (`phoneSchemas`, `userSchemas`, `searchSchemas`) and form schemas (`searchFormSchema`, `myListingsFormSchemas`).

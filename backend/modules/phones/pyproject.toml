@@ -1,0 +1,15 @@
+[project]
+name = "phones"
+version = "0.1.0"
+description = "Listings CRUD, model description generation (LLM) and Guardrail 1: docs/backend/DESIGN.md#modules"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.0.36",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.3",
+]
+
+[tool.uv]
+package = false

@@ -6,8 +6,8 @@ v1.0 uses a browser session without registration. The user is identified by `use
 
 A user is needed only to create and manage listings. Search, Phone details and the "Deal" button work without a user, so a buyer never sees a form.
 
-1. When the user opens the My listings page, the Frontend reads `user_id` from `localStorage`.
-2. If `user_id` is missing, the Frontend shows a modal window for creating a user with the required fields. Fields: see [SCHEMAS.md](SCHEMAS.md#users-modulesauth).
+1. When the user opens any page, the Frontend reads `user_id` from `localStorage`. The application header shows the loaded user: see [MY_LISTING.md](../features/MY_LISTING.md#edit-profile-flow).
+2. If `user_id` is missing, the My listings page shows a modal window for creating a user with the required fields. Fields: see [SCHEMAS.md](SCHEMAS.md#users-modulesauth).
 3. The Frontend calls `POST /api/users`. The Backend creates the user and returns `id`. The Frontend saves it to `localStorage` as `user_id`.
 4. If `user_id` exists, the Frontend calls `GET /api/users/{id}` to load the user data.
 5. If the Backend returns 404, the Frontend removes `user_id` from `localStorage` and shows the modal window from step 2.
@@ -21,7 +21,11 @@ A user is needed only to create and manage listings. Search, Phone details and t
 ## Access
 
 - The Frontend sends `user_id` in the `X-User-Id` header with every request.
-- `modules/main` resolves the header to a user. Access levels `User` and `Owner` in [API.md](API.md) are checked against this user.
+- `X-User-Id` is used only for the access check of an operation. `modules/main` does not load the user on every request.
+- `User` endpoints require `X-User-Id`. An endpoint that creates a resource checks that the user exists before it stores `X-User-Id` as the owner.
+- `Owner` endpoints: `X-User-Id` must be the owner of the resource in the path. A user reads, updates and deletes only own resources. Ids are compared as UUIDs.
+- The checks are FastAPI dependencies in `modules/main`: see [modules/main/CLAUDE.md](../../backend/modules/main/CLAUDE.md#code).
+- Statuses: missing `X-User-Id` 401, malformed or unknown resource id 404, `X-User-Id` is not the owner 403. A stale `user_id` returns 404 on `GET /api/users/{id}`, so the Frontend resets the session (step 5 of [Session Flow](#session-flow)).
 - `user_id` works as a bearer token: whoever has it acts as the user.
 - Public endpoints never return `user_id`. The contact of a listing owner is returned by `GET /api/phones/{id}/contact` by the listing ID.
 

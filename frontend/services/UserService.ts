@@ -9,4 +9,8 @@ export const UserService = {
   getById(id: string): Promise<Api.Response<Entity.User>> {
     return apiRequest(`/api/users/${encodeURIComponent(id)}`, { schema: userSchema });
   },
+
+  update(id: string, body: Api.UpdateUserRequest): Promise<Api.Response<Entity.User>> {
+    return apiRequest(`/api/users/${encodeURIComponent(id)}`, { method: "PUT", body, schema: userSchema });
+  },
 };

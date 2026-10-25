@@ -80,7 +80,6 @@ export function MyListingsPage() {
           status={listingsStatus}
           listings={listings}
           onRetry={() => void loadListings()}
-          onAdd={() => setAddModalOpen(true)}
           onDelete={setPhoneToDelete}
         />
       );
