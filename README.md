@@ -6,6 +6,8 @@ A web app for selling second-hand mobile phones in the US market. A buyer finds 
 
 Version v1.0 is a PoC to validate the idea and collect user feedback. Product requirements: [TASK.md](docs/TASK.md). Architecture: [DESIGN.md](docs/DESIGN.md).
 
+> **PoC, not a commercial product.** v1.0 is built only to validate the business idea, as required by [TASK.md](docs/TASK.md#business-requirements). Simplifications such as the browser session without registration are intentional and follow the [v1.0 scope](docs/TASK.md#out-of-scope-for-v10): see [What is real and what is stubbed](#what-is-real-and-what-is-stubbed). The path to production: [ROADMAP.md](docs/ROADMAP.md).
+
 ## Problem
 
 Buyers of a phone spend hours on store websites and marketplaces: they set filters, open dozens of product pages and compare specifications, prices and reviews. The decision can take days. The app replaces pages of filters with one prompt: the buyer describes the phone in own words and gets matching listings in minutes. Full description of the problem, the business requirements and the v1.0 scope: [TASK.md](docs/TASK.md).
