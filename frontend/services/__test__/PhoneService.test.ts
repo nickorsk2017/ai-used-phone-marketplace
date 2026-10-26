@@ -21,13 +21,13 @@ describe("PhoneService", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`/api/phones/${testPhone.id}`);
   });
 
-  it("returns null data on 404 and 422, an error on other statuses and invalid data", async () => {
+  it("returns null data on 404, an error on other statuses and invalid data", async () => {
     const { PhoneService } = await loadService();
 
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({}, 404)));
     expect(await PhoneService.getById("a")).toMatchObject({ success: true, data: null });
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({}, 422)));
-    expect(await PhoneService.getById("a")).toMatchObject({ success: true, data: null });
+    expect(await PhoneService.getById("a")).toMatchObject({ success: false, status: 422 });
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({}, 500)));
     expect(await PhoneService.getById("a")).toMatchObject({ success: false, status: 500 });
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({ id: "a" })));

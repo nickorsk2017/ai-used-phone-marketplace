@@ -8,6 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from modules.rag.database import RagBase
 
+# Same length as `phones.model_code`: docs/backend/SCHEMAS.md#phones-modulesphones.
+MODEL_CODE_MAX_LENGTH = 32
+
 # OpenAI `text-embedding-3-small`: docs/backend/SCHEMAS.md#search_index-modulesrag.
 EMBEDDING_DIMENSIONS = 1536
 
@@ -30,7 +33,7 @@ class SearchIndex(RagBase):
 
     phone_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
-    model_code: Mapped[str] = mapped_column(String(64))
+    model_code: Mapped[str] = mapped_column(String(MODEL_CODE_MAX_LENGTH))
     model_name: Mapped[str] = mapped_column(String(200))
     os: Mapped[str] = mapped_column(Enum("ios", "android", name="phone_os", create_type=False))
     camera_megapixels: Mapped[int] = mapped_column(Integer)

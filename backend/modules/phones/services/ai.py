@@ -9,10 +9,11 @@ from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
 
 from core.llm import chat_model, llm_call
-from modules.phones import prompts
 from modules.phones.config import get_settings
-from modules.phones.services.guardrails import has_violations
+from modules.phones.prompts.description import DESCRIPTION_SYSTEM, model_message
+from modules.phones.prompts.guardrail import GUARDRAIL_SYSTEM, listing_message
 from modules.phones.schemas import GeneratedDescription, GuardrailVerdict, PhoneCreate, PhoneDescription
+from modules.phones.services.guardrails import has_violations
 
 
 @lru_cache
@@ -39,8 +40,8 @@ async def generate_description(model_name: str) -> PhoneDescription | None:
     return await llm_call(
         get_description_model(),
         GeneratedDescription,
-        prompts.DESCRIPTION_SYSTEM,
-        prompts.model_message(model_name),
+        DESCRIPTION_SYSTEM,
+        model_message(model_name),
         _to_description,
     )
 
@@ -54,7 +55,7 @@ async def check_listing(data: PhoneCreate) -> bool:
 
     `False` blocks the listing. Provider errors are raised: the caller does not save the listing (fail closed).
     """
-    if has_violations(data.model_code, data.model_name, data.description, data.condition_note):
+    if has_violations(data.model_name, data.description, data.condition_note):
         return False
-    message = prompts.listing_message(data.model_code, data.model_name, data.description, data.condition_note)
-    return await llm_call(get_guardrail_model(), GuardrailVerdict, prompts.GUARDRAIL_SYSTEM, message, _to_allowed)
+    message = listing_message(data.model_code, data.model_name, data.description, data.condition_note)
+    return await llm_call(get_guardrail_model(), GuardrailVerdict, GUARDRAIL_SYSTEM, message, _to_allowed)

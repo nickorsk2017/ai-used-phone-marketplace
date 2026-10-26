@@ -49,6 +49,7 @@ export function SearchForm({ defaultPrompt, isLoading, onSearch }: SearchFormPro
             <TextArea
               ref={field.ref}
               rows={4}
+              autoFocus
               placeholder="Samsung with a good camera and a long battery life, like new, under $400"
               onKeyDown={onKeyDown}
               className="resize-y text-base"

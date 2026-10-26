@@ -7,8 +7,9 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conftest import AiStubs, StubChatModel
-from modules.phones import prompts
 from modules.phones import services as phones_service
+from modules.phones.prompts.description import MODEL_DELIMITER
+from modules.phones.prompts.guardrail import LISTING_DELIMITER
 from modules.phones.schemas import GeneratedDescription, GuardrailVerdict, PhoneCreate, PhoneDescription
 
 FOUND = GeneratedDescription(
@@ -54,7 +55,7 @@ async def test_description_found(ai_stubs: AiStubs) -> None:
     assert description is not None
     assert description.model_code == "A2483"
     assert description.os == "ios"
-    assert prompts.MODEL_DELIMITER in chat_model.messages[-1].content
+    assert MODEL_DELIMITER in chat_model.messages[-1].content
 
 
 async def test_description_not_found(ai_stubs: AiStubs) -> None:
@@ -94,7 +95,7 @@ async def test_llm_guardrail(verdict: GuardrailVerdict, allowed: bool, ai_stubs:
     chat_model = StubChatModel(verdict)
     assert await check(ai_stubs, chat_model, LISTING) is allowed
     content = chat_model.messages[-1].content
-    assert content.startswith(prompts.LISTING_DELIMITER)
+    assert content.startswith(LISTING_DELIMITER)
     assert LISTING.condition_note in content
 
 
@@ -144,3 +145,13 @@ async def test_llm_guardrail_message_contains_the_model_code(ai_stubs: AiStubs) 
     chat_model = StubChatModel(GuardrailVerdict(allowed=True))
     await check(ai_stubs, chat_model, LISTING)
     assert "Model code: A2483" in chat_model.messages[-1].content
+
+
+async def test_get_phone_and_owner(session: AsyncSession) -> None:
+    owner = uuid.uuid4()
+    phone = await phones_service.create_phone(session, owner, LISTING)
+    assert await phones_service.get_phone(session, phone.id) == phone
+    assert await phones_service.get_phone_owner_id(session, phone.id) == owner
+    unknown = uuid.uuid4()
+    assert await phones_service.get_phone(session, unknown) is None
+    assert await phones_service.get_phone_owner_id(session, unknown) is None

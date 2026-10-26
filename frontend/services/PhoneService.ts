@@ -6,8 +6,6 @@ import {
 } from "@/schemas/phoneSchemas";
 import { apiRequest, successResponse } from "@/utils/apiClient";
 
-const NOT_FOUND_STATUSES = new Set([404, 422]);
-
 function phonePath(id: string): string {
   return `/api/phones/${encodeURIComponent(id)}`;
 }
@@ -15,7 +13,7 @@ function phonePath(id: string): string {
 export const PhoneService = {
   async getById(id: string): Promise<Api.Response<Entity.Phone | null>> {
     const response = await apiRequest(phonePath(id), { schema: phoneSchema });
-    if (!response.success && NOT_FOUND_STATUSES.has(response.status)) {
+    if (!response.success && response.status === 404) {
       return successResponse(null);
     }
     return response;

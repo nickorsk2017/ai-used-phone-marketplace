@@ -81,6 +81,7 @@ export function AddPhoneModal({ isOpen, onOpenChange }: AddPhoneModalProps) {
           label="Condition note"
           placeholder="There are scuffs and scratches"
           rows={3}
+          autoFocus
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -130,6 +131,7 @@ export function AddPhoneModal({ isOpen, onOpenChange }: AddPhoneModalProps) {
             label="Model name"
             placeholder="iPhone 13 Pro"
             description="AI generates the model description and the specifications. Review them before publishing."
+            autoFocus
             onValueChange={clearGenerated}
           />
         </div>

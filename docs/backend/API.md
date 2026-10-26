@@ -18,5 +18,15 @@ Rate limits per module: see [INFRA.md](../INFRA.md#application). An exceeded lim
 | `DELETE` | `/api/phones/{id}` | Owner | Delete a listing and its search index record in one transaction | [MY_LISTING.md](../features/MY_LISTING.md#delete-phone-flow) |
 | `GET` | `/api/phones/{id}` | Public | Listing details, without `user_id` | [PHONE_DETAILS.md](../features/PHONE_DETAILS.md) |
 | `GET` | `/api/phones/{id}/contact` | Public | Contact of the listing owner: `whatsapp`, `first_name`, `last_name`, for the Deal button | [PHONE_DETAILS.md](../features/PHONE_DETAILS.md#deal-flow) |
-| `POST` | `/api/search` | Public | Search by prompt. Condition and price are taken from the prompt | [RAG.md](../ai/RAG.md) |
+| `POST` | `/api/search` | Public | Search by prompt, see [Search](#search). Condition and price are taken from the prompt | [RAG.md](../ai/RAG.md) |
 | `GET` | `/api/health` | Public | Checks the database connection (`SELECT 1`, timeout 2 seconds): 200 `{"status": "ok"}`, 503 `{"detail": "Database is unavailable"}`. Not rate limited | [DESIGN.md](DESIGN.md#database-connection) |
+
+## Search
+
+- Body: `{"prompt": "..."}`, from 1 to 1000 characters after trimming. Extra fields are rejected.
+- 200: `{"results": [...]}`, at most 20 listings in the rank order of [RERANKING.md](../ai/RERANKING.md#ranking-rules). Each listing has the fields of `GET /api/phones/{id}`. An empty list is a valid result.
+- 200 with a clarification: `{"results": [], "clarification": "..."}` when the prompt has no phone criteria or asks the assistant for advice, see [RAG.md](../ai/RAG.md#clarification). `clarification` is omitted in other responses.
+- `modules/rag` returns the ranked listing IDs, `modules/main` loads the listings through `phones.services` in the same order. An ID without a listing is skipped.
+- 422: invalid body, or the prompt is blocked by Guardrail 2 ([GUARDRAILS.md](../ai/GUARDRAILS.md#guardrail-2-search-prompt)). The response does not name the reason.
+- 429: rate limit, see [INFRA.md](../INFRA.md#application).
+- 503: the LLM, embedding or database error after the retries, see [RAG.md](../ai/RAG.md#errors-and-retries).

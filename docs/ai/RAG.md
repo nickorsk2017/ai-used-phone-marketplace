@@ -11,6 +11,7 @@ The search module `modules/rag`. It is used by the Search page ([SEARCH_PAGE.md]
 3. The listings for these models are retrieved from the database. Condition and price from the prompt are applied in the same SQL query.
 4. If there are not enough phones for the results (20 results), for example, if only 2 of the 10 models exist in the database, a vector search query (pgvector) supplements the results. Condition and price from the prompt are applied in the same SQL query.
 5. The results are merged, deduplicated by `phone_id` and reranked once: see [RERANKING.md](RERANKING.md).
+6. If the prompt has no phone criteria or asks the assistant for advice, the LLM returns a clarification text instead of the model codes, and the pipeline ends without a database query: see [Clarification](#clarification).
 
 ```mermaid
 flowchart TD
@@ -18,7 +19,9 @@ flowchart TD
     B --> C[LLM: Requirements + 10 Model IDs]
     C --> D[Structured JSON]
     D --> E[Validate JSON]
-    E --> F[PostgreSQL: Find Listings by Model IDs + Price/Condition]
+    E --> Q{Clarification?}
+    Q -- Yes --> R[Return Clarification Text]
+    Q -- No --> F[PostgreSQL: Find Listings by Model IDs + Price/Condition]
     F --> H{At least 20 listings?}
     H -- Yes --> J[Merge and Deduplicate]
     H -- No --> I[pgvector: Price/Condition + Semantic Search]
@@ -29,11 +32,14 @@ flowchart TD
 
 ## Orchestration: LangGraph
 
-The search pipeline is implemented as a LangGraph graph. The pipeline is not a linear chain: it has a condition (fewer than 20 results leads to vector search). Why LangGraph: see [Tradeoffs](#langgraph).
+The search pipeline is implemented as a LangGraph graph. The pipeline is not a linear chain: it has two conditions: a clarification ends the pipeline after the LLM node, and fewer than 20 results lead to vector search. Why LangGraph: see [Tradeoffs](#langgraph).
 
 ## LLM Output Structure
 
 Fields under `filters` are present only if the user set them in the prompt.
+
+- A price range (`400-600`) is `operator` `>=` with `value` 400 and `max_value` 600. `max_value` is present only for a range.
+- `model_ids`: at most 10 codes, converted to uppercase, repeats removed.
 
 ```json
 {
@@ -43,8 +49,7 @@ Fields under `filters` are present only if the user set them in the prompt.
     },
     "price": {
       "operator": "<=",
-      "value": 300,
-      "unit": "USD"
+      "value": 300
     }
   },
   "preferences": {
@@ -68,6 +73,25 @@ Fields under `filters` are present only if the user set them in the prompt.
   "query_for_embedding": "Android smartphone with a high-quality camera, long battery life, and a large display"
 }
 ```
+
+### Clarification
+
+The LLM returns a text instead of the search fields in two cases:
+
+1. The prompt has no phone criteria: no brand, OS, model, budget, condition or specification. Example: `What phone should I give my wife for her birthday?`. A search by such a prompt returns random listings, so the LLM returns a question to the buyer instead.
+2. The prompt is a question to the assistant that asks for advice, an opinion or a comparison, with or without criteria. Example: `What do you think is better for my wife's birthday, a phone with a good camera or with a good screen?`. The LLM answers the question in text.
+
+```json
+{
+  "clarification": "What phones does your wife usually like? Describe the budget, the brands and anything else you know: camera, battery, screen size."
+}
+```
+
+- `clarification` is present only in these two cases. Then `filters`, `preferences`, `model_ids` and `query_for_embedding` are omitted.
+- A prompt with at least one criterion that describes the wanted phone (`a phone for my wife under $300`) is searched as usual, without a clarification. A question that only asks for listings (`Do you have an iPhone 13 under $300?`) is a search too.
+- The text is in the language of the prompt, at most 300 characters, and does not recommend models: the recommended model may have no listings.
+- Case 1: the text asks for the budget, the brand and the specifications.
+- Case 2: the text answers the question by the specifications (camera, battery, screen size, OS, condition), then asks for the missing criteria (budget, brand) to run a search.
 
 ## Model code
 
@@ -102,7 +126,8 @@ Other modules use search only through the `modules/rag` interface. The storage b
 
 - `embed_listing(model_name, description, condition_note)`: the embedding of the listing text. A slow network call, made before the transaction of the listing.
 - `index(session, phone, embedding)`: creates the search index record. `session` is the transaction of the listing: [Indexing](#indexing). `phone` holds the copied listing fields. `embedding` is the result of `embed_listing`, so a retried transaction does not call the embeddings API again: see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
-- `delete(phone_id)`, `search(query, filters)`.
+- `search(session, prompt)`: runs the pipeline of [Architecture](#architecture) and returns `SearchResult`: the ranked listing IDs, at most 20, or the [clarification](#clarification) text. Raises `PromptBlocked` when Guardrail 2 blocks the prompt. Response of the endpoint: see [API.md](../backend/API.md#search).
+- `delete(phone_id)`.
 
 ## Errors and Retries
 
@@ -149,6 +174,7 @@ Matching by name is unreliable. The model code is one value for all forms of the
 
 - A model can have several codes, including several US codes (for example, Samsung Galaxy S23: `SM-S911U` and `SM-S911U1`). If the code from the search differs from the code saved with the listing, the listing is not found at the model code step.
 - Model codes are returned by the LLM. Errors are possible for rare models.
+- A model without a US version (most Xiaomi, Huawei, Oppo, vivo, Honor and Realme models) has no US code. The listing is saved with the code that the LLM returns, the seed uses the global code: see [STRUCTURE.md](../backend/STRUCTURE.md#seed). If the search returns another code for the same model, the listing is found by vector search only.
 - Vector search and reranking partly compensate for these errors.
 
 ### Production: model catalog

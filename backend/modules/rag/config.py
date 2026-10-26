@@ -13,6 +13,10 @@ class RagSettings(BaseSettings):
 
     openai_api_key: str = Field(min_length=1)
     embedding_model: str = "text-embedding-3-small"
+    search_model: str = "gpt-5.6-luna"
+    rerank_model: str = "gpt-5.6-luna"
+    guardrail_model: str = "gpt-5.6-luna"
+    rerank_threshold: float = Field(default=0.3, ge=0, le=1)
 
 
 @lru_cache

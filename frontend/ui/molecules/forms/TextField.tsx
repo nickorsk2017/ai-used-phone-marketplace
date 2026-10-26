@@ -12,6 +12,7 @@ interface TextFieldProps<TInput extends FieldValues, TOutput> {
   type?: "text" | "tel";
   autoComplete?: string;
   rows?: number;
+  autoFocus?: boolean;
   onValueChange?: (value: string) => void;
 }
 
@@ -24,6 +25,7 @@ export function TextField<TInput extends FieldValues, TOutput>({
   type,
   autoComplete,
   rows,
+  autoFocus,
   onValueChange,
 }: TextFieldProps<TInput, TOutput>) {
   return (
@@ -32,9 +34,9 @@ export function TextField<TInput extends FieldValues, TOutput>({
       control={control}
       render={({ field, fieldState }) => {
         const inputJSX = rows ? (
-          <TextArea ref={field.ref} rows={rows} placeholder={placeholder} className="resize-y" />
+          <TextArea ref={field.ref} rows={rows} placeholder={placeholder} autoFocus={autoFocus} className="resize-y" />
         ) : (
-          <Input ref={field.ref} placeholder={placeholder} />
+          <Input ref={field.ref} placeholder={placeholder} autoFocus={autoFocus} />
         );
 
         return (

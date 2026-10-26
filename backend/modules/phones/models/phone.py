@@ -9,7 +9,7 @@ from modules.phones.database import PhonesBase
 
 PHONE_OS = ("ios", "android")
 PHONE_CONDITIONS = ("like_new", "average", "for_repair")
-MODEL_CODE_MAX_LENGTH = 64
+MODEL_CODE_MAX_LENGTH = 32
 MODEL_NAME_MAX_LENGTH = 200
 
 

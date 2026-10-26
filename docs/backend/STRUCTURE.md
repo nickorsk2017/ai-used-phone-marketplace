@@ -7,6 +7,7 @@ Module responsibilities: [DESIGN.md](DESIGN.md#modules).
 ```
 backend/
   core/
+  schemas/
   modules/
     users/
     auth/
@@ -14,6 +15,7 @@ backend/
     rag/
     main/
   migrations/
+  seed/
   alembic.ini
   main.py
   conftest.py
@@ -23,8 +25,10 @@ backend/
 ```
 
 - `core`: shared infrastructure of the modules: database settings and connection (see [DESIGN.md](DESIGN.md#database-connection)), `llm.py`: the LangChain client factories (`chat_model`, `embeddings`) and `llm_call`, the structured LLM call with the repeat on an invalid output (see [RAG.md](../ai/RAG.md#errors-and-retries)).
+- `schemas`: shared Pydantic schemas that combine the schemas of several modules, for example the response body of `POST /api/search` (`schemas/search.py`: `SearchResponse` with the listings of `phones.schemas`). Imported by `modules/main` only. Schemas of one module stay in the `schemas` of that module.
 - `modules`: domain modules and `main`, one folder per module: see [Module structure](#module-structure).
 - `migrations`: Alembic migrations of all modules, `alembic.ini`: their config. See [SCHEMAS.md](SCHEMAS.md#migrations).
+- `seed`: synthetic seed data and the script that loads it: see [Seed](#seed).
 - `main.py`: entry point.
 - `conftest.py`: shared test fixtures (PostgreSQL from `TEST_DATABASE_URL`).
 - `pyproject.toml`, `uv.lock`: uv workspace of the modules, dev tools (pytest, ruff).
@@ -41,7 +45,8 @@ There are two kinds of modules: domain modules and `modules/main`. Module rules:
 - `models` - SQLAlchemy models, only in a module with tables
 - `schemas` - Pydantic schemas for data structure validation, also the request and response bodies of the API
 - `services` - public interface of the module. Other modules import only `services` and `schemas`. `services/__init__.py` re-exports the public functions, the files inside are split by dependency: `crud.py` has the database functions (take the session), `ai.py` has the LLM and embedding calls (`modules/phones`, `modules/rag`), `token.py` and `access.py` in `modules/auth`
-- other files of the module, for example `prompts.py` in `modules/phones`: internal, imported only inside the module
+- `services` internal files, not re-exported by `services/__init__.py` and imported only inside the module: `guardrails.py` in `modules/phones`, `graph.py` (search pipeline) and `ranking.py` (ranking rules, no I/O) in `modules/rag`
+- `prompts` - system prompts of the LLM calls, one file per prompt (`modules/phones`: `description.py`, `guardrail.py`; `modules/rag`: `guardrail.py`, `parse.py`, `rerank.py`, and `delimiters.py` with the search prompt delimiter shared by `guardrail.py` and `parse.py`). User text goes to the LLM only inside the delimiters of these files. Internal, imported only inside the module
 - `config.py` - settings of the module, only in a module with settings (`modules/phones`, `modules/rag`): see [DESIGN.md](DESIGN.md#configuration)
 - `database.py` - declarative Base of the module tables (`UsersBase`), only in a module with tables
 - `tests` - unit tests, integration tests
@@ -57,7 +62,20 @@ The API for the Frontend. No tables and no models.
 - `dependencies.py` - session of the request (`DbSession`), the session cookie and access checks (`CurrentUser`, `owner_access`)
 - `rate_limit.py` - rate limits of the modules
 - `ai.py` - `AI_ERRORS`: errors of the AI calls of the domain modules left after the retries, mapped to 503
-- `routers` - API endpoints, one file per resource (`users.py`, `health.py`, `phones.py`, `my_listings.py`)
+- `routers` - API endpoints, one file per resource (`users.py`, `health.py`, `phones.py`, `my_listings.py`, `search.py`)
 - `tests` - unit tests, integration tests
 - `pyproject.toml` - file describing dependencies and libraries
 - `CLAUDE.md` - rules for AI coding agents: module architecture and code
+
+## Seed
+
+`backend/seed/` holds the synthetic data of the evaluation: see [EVALUATION.md](../ai/EVALUATION.md#data).
+
+- `users/seed_1.py`: `USERS`, 7 seed sellers as `UserCreate`. A seed user is identified by the WhatsApp number.
+- `schemas.py`: `SeedListing`, the seller index in `USERS` and the listing as `PhoneCreate`.
+- `listing/seed_1.py`, `listing/seed_2.py`, `listing/seed_3.py`: `LISTINGS`, 20 listings each: Apple, Samsung, Google and OnePlus.
+- `listing/seed_4.py`: `LISTINGS`, 14 listings: Xiaomi, POCO, Huawei and Honor. `listing/seed_5.py`: `LISTINGS`, 16 listings: Oppo, vivo, Realme, Nothing and CMF.
+- One listing per model. Model data: the model code, the main camera, the battery and the display of the real model. The model code is the US code. A model without a US version has the global code, or the China code if the model is sold only in China: see [RAG.md](../ai/RAG.md#model-code-limitations). The battery and the display are the values of the version of this code; for a foldable, the display is the main display.
+- `run.py`: the load script, `make seed`. It checks that `model_code` and `model_name` are unique, creates the missing users, computes the embeddings of the missing listings with `rag.services.embed_listing`, then creates the listings and their `search_index` records in one transaction with `phones.services.create_phone` and `rag.services.index`. Guardrail 1 is not called: the seed text is trusted.
+- A repeated run adds only the missing users and listings: a listing is identified by its user and `model_code`. `make seed-reset` deletes the seed users, their listings and their index records first.
+- The domain modules have no lookup of a user by WhatsApp and no delete, so `run.py` reads the seed user IDs and deletes the seed rows with SQL directly. This is the only code outside a module that touches module tables, besides `migrations/`.

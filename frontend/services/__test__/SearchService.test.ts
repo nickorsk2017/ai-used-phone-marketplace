@@ -12,7 +12,7 @@ describe("SearchService", () => {
     const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ results: [testPhone] }));
     vi.stubGlobal("fetch", fetchMock);
 
-    expect(await SearchService.search("iPhone")).toEqual({ success: true, data: [testPhone], errorText: "" });
+    expect(await SearchService.search("iPhone")).toEqual({ success: true, data: { results: [testPhone] }, errorText: "" });
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/search");
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ prompt: "iPhone" });
   });
@@ -22,7 +22,18 @@ describe("SearchService", () => {
     vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({ results })));
 
     const response = await SearchService.search("phone");
-    expect(response.success && response.data).toHaveLength(SEARCH_RESULTS_LIMIT);
+    expect(response.success && response.data.results).toHaveLength(SEARCH_RESULTS_LIMIT);
+  });
+
+  it("returns the clarification without results", async () => {
+    const clarification = "What phones does your wife usually like?";
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => jsonResponse({ results: [], clarification })));
+
+    expect(await SearchService.search("A gift")).toEqual({
+      success: true,
+      data: { results: [], clarification },
+      errorText: "",
+    });
   });
 
   it("returns the error of a failed request", async () => {

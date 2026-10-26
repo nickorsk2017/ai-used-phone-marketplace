@@ -84,6 +84,23 @@ describe("SearchPage", () => {
     expect(await screen.findByText("No phones match your prompt. Try to describe the phone in other words.")).toBeInTheDocument();
   });
 
+  it("shows the clarification in place of the listings and keeps the prompt", async () => {
+    const clarification =
+      "What phones does your wife usually like? Describe the budget, the brands and anything else you know: camera, battery, screen size.";
+    const prompt = "What phone should I give my wife for her birthday?";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ results: [], clarification })));
+    const user = userEvent.setup();
+    render(<SearchPage />);
+
+    await user.type(getPrompt(), prompt);
+    await user.click(getSubmit());
+
+    expect(await screen.findByRole("status")).toHaveTextContent(clarification);
+    expect(screen.queryByText("No phones match your prompt. Try to describe the phone in other words.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(getPrompt()).toHaveValue(prompt);
+  });
+
   it("shows the error and keeps the prompt in the field", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
     const user = userEvent.setup();
@@ -95,6 +112,21 @@ describe("SearchPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Please try again later.");
     expect(getPrompt()).toHaveValue(PROMPT);
     await waitFor(() => expect(getSubmit()).toBeEnabled());
+  });
+
+  it.each([
+    [422, "We could not process this prompt. Please describe the phone in other words."],
+    [429, "Too many requests. Wait 10 seconds and try again."],
+  ])("shows the text of HTTP %i and keeps the prompt", async (status, text) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ detail: "error" }, { status })));
+    const user = userEvent.setup();
+    render(<SearchPage />);
+
+    await user.type(getPrompt(), PROMPT);
+    await user.click(getSubmit());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(text);
+    expect(getPrompt()).toHaveValue(PROMPT);
   });
 
   it("submits with Ctrl+Enter", async () => {

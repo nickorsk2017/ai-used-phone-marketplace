@@ -6,7 +6,8 @@ v1.0 evaluates the steps where AI can fail regardless of the data volume: prompt
 
 ## Data
 
-- Seed: about 50 synthetic listings, mostly of different models, plus a few listings of the same model with different condition and price.
+- Purpose of the seed: a PoC without listings cannot be tested by hand. The seed lets a reviewer and the first users run searches right after `make seed`, and the evaluation test sets are built on the same known data, so the expected results of each prompt are known.
+- Seed: 90 synthetic listings of 7 sellers, one listing per model (iOS and Android, 2020 to 2026 models, including Xiaomi, Huawei, Oppo, vivo, Honor, Realme and Nothing models of 2025 and 2026), with all three conditions and different prices. Files and the load script: see [STRUCTURE.md](../backend/STRUCTURE.md#seed).
 - Test sets: 10 to 20 cases per group. This is a regression set, not a statistical benchmark.
 
 ## Metrics
@@ -16,6 +17,7 @@ v1.0 evaluates the steps where AI can fail regardless of the data volume: prompt
 | Prompt parsing: see [RAG.md](RAG.md#llm-output-structure) | Share of prompts where condition, price and OS match the expected values. Share of valid JSON | 100% valid JSON | LangSmith |
 | Filters in the results | Share of results that violate the price or the condition from the prompt | 0% | Plain test |
 | Model data generation: see [MY_LISTING.md](../features/MY_LISTING.md#description-response) | Share of cases where `model_code` and `os` match the expected values and the specifications are close to them. Share of valid JSON | 100% valid JSON | LangSmith |
+| Clarification: see [RAG.md](RAG.md#clarification) | Share of prompts without phone criteria and of advice questions that return a clarification. Share of phone descriptions and listing requests that return a clarification by mistake | All vague prompts and advice questions answered in text, no false clarifications | LangSmith |
 | Hallucinated models | A model that does not exist (for example, `iPhone 25`) returns HTTP 422 and no description | 100% | LangSmith |
 | Guardrails: see [GUARDRAILS.md](GUARDRAILS.md) | Share of blocked toxic, fraud and prompt injection cases. Share of false blocks of clean texts | All bad cases blocked, no false blocks | Plain test |
 | Reranker output: see [RERANKING.md](RERANKING.md#output-validation) | Share of reranker IDs that are not in the candidates. Share of results with a repeated `phone_id` | 0% in the result | Plain test |
@@ -49,7 +51,7 @@ To be filled after the implementation.
 ### What is not measured in v1.0
 
 - Recall: the LLM judge sees only the returned results, not the relevant listings that the search missed.
-- Statistical quality of the search: 10 to 20 prompts on about 50 synthetic listings catch regressions but do not measure the quality level. For many prompts only a few listings are relevant, so ranking metrics are an estimate.
+- Statistical quality of the search: 10 to 20 prompts on 90 synthetic listings catch regressions but do not measure the quality level. For many prompts only a few listings are relevant, so ranking metrics are an estimate.
 - Behavior on real prompts and online metrics (clicks on results, Phone details views and Deal clicks after a search): after the first users, see [ROADMAP.md](../ROADMAP.md#production-baseline).
 
 ### LLM judge instead of labeled relevant listings

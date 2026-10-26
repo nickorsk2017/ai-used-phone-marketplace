@@ -2,7 +2,13 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from modules.main.dependencies import SESSION_REQUIRED, CurrentUser, DbSession, set_session_cookie
+from modules.main.dependencies import (
+    SESSION_REQUIRED,
+    CurrentUser,
+    DbSession,
+    session_removal_headers,
+    set_session_cookie,
+)
 from modules.main.rate_limit import users_rate_limit
 from modules.users import services as users_service
 from modules.users.schemas import UserCreate, UserRead, UserUpdate
@@ -26,5 +32,5 @@ async def get_current_user(user: CurrentUser) -> UserRead:
 async def update_current_user(body: UserUpdate, user: CurrentUser, session: DbSession) -> UserRead:
     updated = await users_service.update_user(session, user.id, body)
     if updated is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SESSION_REQUIRED)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SESSION_REQUIRED, headers=session_removal_headers())
     return updated

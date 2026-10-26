@@ -1,27 +1,47 @@
-import { EmptyState } from "@heroui/react";
-import type { SearchStatus } from "@/stores/searchStore";
+import { Card, EmptyState } from "@heroui/react";
+import type { SearchError, SearchStatus } from "@/stores/searchStore";
 import { Alert } from "@/ui/molecules/Alert";
 import { CardSkeletonGrid } from "@/ui/molecules/CardSkeletonGrid";
 import { PhoneCard } from "@/ui/organisms/PhoneCard";
 
 const SKELETON_COUNT = 6;
 
+// Texts by the response of `POST /api/search`: docs/features/SEARCH_PAGE.md#errors.
+const ERROR_TEXTS: Record<SearchError, string> = {
+  rejected: "We could not process this prompt. Please describe the phone in other words.",
+  rate_limited: "Too many requests. Wait 10 seconds and try again.",
+  failed: "Something went wrong. Please try again later.",
+};
+
 interface SearchResultsProps {
   status: SearchStatus;
   results: Entity.Phone[];
+  clarification?: string | null;
+  error?: SearchError | null;
 }
 
-export function SearchResults({ status, results }: SearchResultsProps) {
+export function SearchResults({ status, results, clarification, error }: SearchResultsProps) {
   if (status === "idle") {
     return null;
   }
 
   if (status === "error") {
-    return <Alert title="Something went wrong. Please try again later." />;
+    return <Alert title={ERROR_TEXTS[error ?? "failed"]} />;
   }
 
   if (status === "loading") {
     return <CardSkeletonGrid count={SKELETON_COUNT} label="Results" />;
+  }
+
+  // Shown in place of the listings: docs/features/SEARCH_PAGE.md#clarification.
+  if (clarification) {
+    return (
+      <Card role="status" className="w-full">
+        <Card.Content className="p-6 sm:p-8">
+          <p className="text-lg leading-relaxed sm:text-xl">{clarification}</p>
+        </Card.Content>
+      </Card>
+    );
   }
 
   if (results.length === 0) {

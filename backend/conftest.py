@@ -126,6 +126,9 @@ class AiStubs:
     description: StubChatModel = field(default_factory=StubChatModel)
     guardrail: StubChatModel = field(default_factory=StubChatModel)
     embeddings: StubEmbeddings = field(default_factory=StubEmbeddings)
+    search_guardrail: StubChatModel = field(default_factory=StubChatModel)
+    search_parse: StubChatModel = field(default_factory=StubChatModel)
+    rerank: StubChatModel = field(default_factory=StubChatModel)
 
 
 @pytest.fixture(autouse=True)
@@ -135,4 +138,7 @@ def ai_stubs(monkeypatch: pytest.MonkeyPatch) -> AiStubs:
     monkeypatch.setattr(phones_ai, "get_description_model", lambda: stubs.description)
     monkeypatch.setattr(phones_ai, "get_guardrail_model", lambda: stubs.guardrail)
     monkeypatch.setattr(rag_ai, "get_embeddings", lambda: stubs.embeddings)
+    monkeypatch.setattr(rag_ai, "get_guardrail_model", lambda: stubs.search_guardrail)
+    monkeypatch.setattr(rag_ai, "get_search_model", lambda: stubs.search_parse)
+    monkeypatch.setattr(rag_ai, "get_rerank_model", lambda: stubs.rerank)
     return stubs

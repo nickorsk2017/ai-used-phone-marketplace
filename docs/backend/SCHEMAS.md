@@ -67,4 +67,4 @@ The Backend has one Alembic migration chain for all modules: `backend/alembic.in
 
 ## Tradeoffs
 
-- One migration chain instead of a chain per module. Chosen for the PoC: one `alembic.ini`, one version table, one `make migrate`. Limitation: a module cannot be moved to a separate database together with its own migration history. Rejected: a chain per module with the version table `alembic_version_<module>`. It is restored when a module is moved to a separate service: see [DESIGN.md](../DESIGN.md#backend).
+- One migration chain instead of a chain per module. Chosen for the PoC: one `alembic.ini`, one version table, one `make migrate`. Limitation: a module cannot be moved to a separate database together with its own migration history. Rejected: a chain per module with the version table `alembic_version_<module>`. It is restored when a module is moved to a separate service: see [DESIGN.md](../../BRIEF.md#backend).

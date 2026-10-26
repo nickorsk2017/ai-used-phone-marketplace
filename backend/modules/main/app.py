@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import config_errors as database_config_errors
 from modules.main.config import config_errors, get_settings
-from modules.main.routers import health, my_listings, phones, users
+from modules.main.routers import health, my_listings, phones, search, users
 from modules.phones.config import config_errors as phones_config_errors
 from modules.rag.config import config_errors as rag_config_errors
 
@@ -50,5 +50,6 @@ def create_app() -> FastAPI:
     api.include_router(users.router)
     api.include_router(phones.router)
     api.include_router(my_listings.router)
+    api.include_router(search.router)
     app.include_router(api)
     return app

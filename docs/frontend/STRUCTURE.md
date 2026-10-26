@@ -11,7 +11,6 @@ frontend/
   public/
   schemas/
   services/
-    stubs/
   stores/
   themes/
     theme.css
@@ -24,7 +23,7 @@ frontend/
       modal/
   utils/
   CLAUDE.md
-  .env
+  .env.example
 ```
 
 - `app`: Next.js App Router routes. Route files only compose components from `features`.
@@ -35,7 +34,6 @@ frontend/
 - `public`: static files.
 - `schemas`: Zod schemas, one file per schema group: API responses validated by the services (`phoneSchemas`, `userSchemas`, `searchSchemas`) and form schemas (`searchFormSchema`, `myListingsFormSchemas`).
 - `services`: one service per entity, for example `UserService`, `PhoneService`, `SearchService`, and `AuthService` for the browser session and registration. A service contains the API calls of the entity and the operations on it, and returns `Api.Response`: [SCHEMAS.md](SCHEMAS.md#response). Features and stores call services, not `utils/apiClient.ts` directly.
-  - `stubs`: stub API data enabled by `NEXT_PUBLIC_API_STUB=true`.
 - `stores`: Zustand stores.
 - `themes`: HeroUI theme, CSS variables.
 - `types`: global TypeScript types in `.d.ts` files, namespaces `Entity` and `Api`: [SCHEMAS.md](SCHEMAS.md#types).
@@ -45,9 +43,9 @@ frontend/
   - `molecules/forms`: form inputs bound to React Hook Form: `TextField`, `NumberField`, `Select`.
   - `organisms`: `PhoneCard`.
   - `organisms/modal`: `Modal`, the base of every feature modal.
-- `utils`: general helpers: API client, session, routes, class names, text formatting, phone specifications for `SpecList` (`phoneSpecs.ts`), `guardrails.ts` (Frontend Regex layer: [GUARDRAILS.md](../ai/GUARDRAILS.md)).
+- `utils`: general helpers: API client, routes, class names, text formatting, phone specifications for `SpecList` (`phoneSpecs.ts`), `guardrails.ts` (Frontend Regex layer: [GUARDRAILS.md](../ai/GUARDRAILS.md)).
 - `CLAUDE.md`: rules for AI coding agents working in the Frontend.
-- `.env`: environment variables.
+- `.env.example`: template of `frontend/.env`, the environment variables of the Frontend.
 
 ## Tests
 

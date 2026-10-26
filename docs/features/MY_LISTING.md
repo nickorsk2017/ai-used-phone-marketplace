@@ -1,6 +1,6 @@
 # My Listing
 
-The page requires a user. If there is no user in the browser session, the page first shows the user creation modal window: see [AUTH.md](../backend/AUTH.md#session-flow).
+The page requires a user. If there is no user in the browser session, the page first shows the user creation modal window: see [AUTH.md](../backend/AUTH.md#session-flow). The modal window has the title `Create your seller profile`. If `POST /api/users` fails, the form stays filled and shows `Could not create the profile. Please try again.`
 
 ## Edit Profile Flow
 

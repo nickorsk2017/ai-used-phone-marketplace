@@ -1,6 +1,6 @@
 # Backend Architecture
 
-Folders and files: [STRUCTURE.md](STRUCTURE.md). Data models and migrations: [SCHEMAS.md](SCHEMAS.md). Endpoints: [API.md](API.md). System architecture: [DESIGN.md](../DESIGN.md).
+Folders and files: [STRUCTURE.md](STRUCTURE.md). Data models and migrations: [SCHEMAS.md](SCHEMAS.md). Endpoints: [API.md](API.md). System architecture: [BRIEF.md](../../BRIEF.md).
 
 ## Stack
 
@@ -34,7 +34,7 @@ Each module can be moved to a separate microservice later, the `main` module can
 - `core`: `DATABASE_URL` (required).
 - `modules/main`: `CORS_ORIGINS` (optional, default `http://localhost:3000`), `SESSION_SECRET` (required, at least 32 characters, passed to `modules/auth`), `COOKIE_SECURE` (optional, default `true`). Session and cookie: see [AUTH.md](AUTH.md#session-token).
 - `modules/phones`: `OPENAI_API_KEY` (required), `DESCRIPTION_MODEL` (optional, default `gpt-5.6-luna`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
-- `modules/rag`: `OPENAI_API_KEY` (required), `EMBEDDING_MODEL` (optional, default `text-embedding-3-small`, see [SCHEMAS.md](SCHEMAS.md#search_index-modulesrag)).
+- `modules/rag`: `OPENAI_API_KEY` (required), `EMBEDDING_MODEL` (optional, default `text-embedding-3-small`, see [SCHEMAS.md](SCHEMAS.md#search_index-modulesrag)), `SEARCH_MODEL` (optional, default `gpt-5.6-luna`, the prompt parsing of [RAG.md](../ai/RAG.md#llm-output-structure)), `RERANK_MODEL` (optional, default `gpt-5.6-luna`, see [RERANKING.md](../ai/RERANKING.md#reranker)), `RERANK_THRESHOLD` (optional, default `0.3`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, Guardrail 2, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
 - `modules/phones` and `modules/rag` create their LangChain clients from their own settings with the factories of `core/llm.py` (`max_retries=2`, see [RAG.md](../ai/RAG.md#errors-and-retries)). `modules/main` passes no AI clients to the service calls.
 - On startup `modules/main` collects the configuration errors of `core` and of the modules (a variable shared by several modules is listed once) and stops the process with the list of missing or invalid variables. The API does not start with an incomplete configuration.
 - `make backend-check` runs the same check before `make backend-dev`, `make migrate` and `make up-all`, so the command stops with a non-zero exit code instead of leaving the reloader running.

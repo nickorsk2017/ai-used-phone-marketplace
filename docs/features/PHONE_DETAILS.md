@@ -1,6 +1,6 @@
 # Phone Details
 
-The public page of a single listing. It is the only page that requires SEO, which is why the Frontend uses Next.js (see [DESIGN.md](../DESIGN.md)).
+The public page of a single listing. It is the only page that requires SEO, which is why the Frontend uses Next.js (see [DESIGN.md](../../BRIEF.md)).
 
 ## Route
 
@@ -48,7 +48,9 @@ Generated in `generateMetadata` from the listing data:
 | `title` | `{Model}, {Condition}, ${Price}` |
 | `description` | First 155 characters of the model description |
 | `canonical` | `/phones/{id}` |
-| `og:title`, `og:description`, `og:url`, `og:type` | Same as above, `og:type = product` |
+| `og:title`, `og:description`, `og:url` | Same as above |
+
+`og:type = product` is not a value of the Next.js `openGraph.type`, so the page renders `<meta property="og:type" content="product">` in the page component. React places it in the document head.
 
 ### Structured Data
 

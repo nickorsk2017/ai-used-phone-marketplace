@@ -1,3 +1,3 @@
-from modules.users.schemas.user import UserCreate, UserRead, UserUpdate
+from modules.users.schemas.user import UserContact, UserCreate, UserRead, UserUpdate
 
-__all__ = ["UserCreate", "UserRead", "UserUpdate"]
+__all__ = ["UserContact", "UserCreate", "UserRead", "UserUpdate"]

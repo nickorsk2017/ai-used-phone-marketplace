@@ -9,6 +9,8 @@ export function SearchPage() {
   const prompt = useSearchStore((state) => state.prompt);
   const status = useSearchStore((state) => state.status);
   const results = useSearchStore((state) => state.results);
+  const clarification = useSearchStore((state) => state.clarification);
+  const error = useSearchStore((state) => state.error);
   const search = useSearchStore((state) => state.search);
 
   return (
@@ -21,7 +23,7 @@ export function SearchPage() {
         isLoading={status === "loading"}
         onSearch={(value) => void search(value)}
       />
-      <SearchResults status={status} results={results} />
+      <SearchResults status={status} results={results} clarification={clarification} error={error} />
     </PageContainer>
   );
 }

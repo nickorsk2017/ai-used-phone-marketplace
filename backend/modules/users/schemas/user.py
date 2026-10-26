@@ -38,6 +38,16 @@ class UserUpdate(UserFields):
     """Body of `PUT /api/users/me`: all fields are replaced."""
 
 
+class UserContact(BaseModel):
+    """Contact of a listing owner, `GET /api/phones/{id}/contact`: docs/features/PHONE_DETAILS.md#deal-flow."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    whatsapp: str
+    first_name: str
+    last_name: str
+
+
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-Folders and files: [STRUCTURE.md](STRUCTURE.md). Types, form validation and browser storage: [SCHEMAS.md](SCHEMAS.md). System architecture: [DESIGN.md](../DESIGN.md).
+Folders and files: [STRUCTURE.md](STRUCTURE.md). Types, form validation and browser storage: [SCHEMAS.md](SCHEMAS.md). System architecture: [BRIEF.md](../../BRIEF.md).
 
 ## Stack
 

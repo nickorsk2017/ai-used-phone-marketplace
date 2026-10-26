@@ -102,6 +102,6 @@ async def test_my_listings_allows_the_page_load_and_the_reload_after_publish(ai_
     async with signed_in_client(phones_app(ai_stubs)) as client:
         assert (await client.get("/api/my-listings")).status_code == 200
         assert (await client.post("/api/phones", json=LISTING)).status_code == 201
-        assert (await client.get("/api/my-listings")).status_code == 200
-        assert (await client.get("/api/my-listings")).status_code == 200
+        for _ in range(4):
+            assert (await client.get("/api/my-listings")).status_code == 200
         assert (await client.get("/api/my-listings")).status_code == 429

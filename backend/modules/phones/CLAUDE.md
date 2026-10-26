@@ -11,7 +11,7 @@ Rules for AI coding agents working in `backend/modules/phones/`. Project rules: 
 
 ## Module boundary
 
-- `services/` is the public interface of the module, called by `modules/main` only. `services/__init__.py` re-exports the public functions: `services/ai.py` has the LLM calls, `services/crud.py` has the database functions (take the session). Other modules import only `services` and `schemas/`, never `models/`, `database.py`, `services/guardrails.py` or `prompts.py`.
+- `services/` is the public interface of the module, called by `modules/main` only. `services/__init__.py` re-exports the public functions: `services/ai.py` has the LLM calls, `services/crud.py` has the database functions (take the session). Other modules import only `services` and `schemas/`, never `models/`, `database.py`, `services/guardrails.py` or `prompts/`.
 - The module does not import `modules/rag`: `modules/main` builds the search index record from the created listing.
 - Service functions take the session of the request as the first argument, never commit and never open their own session: [docs/backend/DESIGN.md](../../../docs/backend/DESIGN.md#database-connection). They return Pydantic schemas, never ORM objects.
 - Settings: `config.py` ([DESIGN.md](../../../docs/backend/DESIGN.md#configuration)). The chat models are created in `services/ai.py` (`get_description_model`, `get_guardrail_model`) with `chat_model` of `core/llm.py`. Tests replace them with the `ai_stubs` fixture of `backend/conftest.py`.
@@ -20,7 +20,7 @@ Rules for AI coding agents working in `backend/modules/phones/`. Project rules: 
 ## LLM
 
 - Every LLM call uses structured output (Pydantic). Network errors are retried by the client; an invalid output is repeated once by `llm_call` in `core/llm.py`, then raised.
-- User text goes to the LLM only inside the delimiters of `prompts.py`.
+- System prompts live in `prompts/`, one file per prompt: `description.py` (model description), `guardrail.py` (Guardrail 1). User text goes to the LLM only inside the delimiters of these files.
 - Guardrail 1 checks `model_code`, `model_name`, `description` and `condition_note`: [docs/ai/GUARDRAILS.md](../../../docs/ai/GUARDRAILS.md#guardrail-1-phone-saving). The `model_code` format is a schema rule: [docs/backend/SCHEMAS.md](../../../docs/backend/SCHEMAS.md#phones-modulesphones).
 - `services/guardrails.py` is internal (not re-exported by `services/__init__.py`) and keeps the rules of `frontend/utils/guardrails.ts`. A rule change is made on both sides, with the same test cases.
 

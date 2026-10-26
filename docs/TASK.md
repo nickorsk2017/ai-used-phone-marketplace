@@ -22,6 +22,16 @@ Typical scenario of a user who has not yet chosen a model:
 4. Compares specifications, prices, user reviews and expert reviews.
 5. Returns to several options, compares them again and makes a decision.
 
+## Business Problem
+
+For a marketplace of used phones the long search is a loss of revenue:
+
+- Lost buyers. A buyer who cannot find a suitable phone in a few minutes leaves for a competitor or postpones the purchase. The marketplace pays for the traffic and loses the sale.
+- Lost sellers. Fewer buyers mean fewer deals, and sellers move to platforms with more demand.
+- No differentiation. Marketplaces of used phones offer the same filters and the same catalog. The search experience is one of the few areas where a marketplace can stand out.
+
+Hypothesis of v1.0: search by one prompt shortens the time from the first visit to the Deal click and increases the share of visits that end with a Deal click. The PoC validates the hypothesis on the first users: see the online metrics in [ROADMAP.md](ROADMAP.md#production-baseline).
+
 ## Solution
 
 An AI service that lets the user find the right phone with a prompt in minutes instead of pages of filters.

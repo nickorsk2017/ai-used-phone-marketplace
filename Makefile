@@ -5,7 +5,7 @@ BACKEND_DIR := backend
 UV := uv --directory $(BACKEND_DIR)
 UV_RUN := $(UV) run --all-packages
 
-.PHONY: help frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration up-all
+.PHONY: help frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset up-all
 
 help:
 	@echo "All:"
@@ -22,6 +22,8 @@ help:
 	@echo "  make backend-test      Run ruff and pytest (TEST_DATABASE_URL)"
 	@echo "  make migrate           Apply the migrations up to head"
 	@echo "  make migration MSG=\"add phone index\"  Autogenerate the next numbered migration"
+	@echo "  make seed              Apply the migrations, then load the seed users and listings into the database"
+	@echo "  make seed-reset        Delete the seed users and listings, then load them again"
 
 # ============================================================
 # All
@@ -70,6 +72,12 @@ migration: backend-check
 	@test -n "$(MSG)" || { echo "Usage: make migration MSG=\"<description>\""; exit 1; }
 	@next=$$(printf "%04d" $$(( $$(ls $(BACKEND_DIR)/migrations/versions/*.py 2>/dev/null | wc -l) + 1 ))); \
 		$(UV_RUN) alembic revision --autogenerate --rev-id $$next -m "$(MSG)"
+
+seed: migrate
+	$(UV_RUN) python -m seed.run
+
+seed-reset: migrate
+	$(UV_RUN) python -m seed.run --reset
 
 # ============================================================
 # Infrastructure

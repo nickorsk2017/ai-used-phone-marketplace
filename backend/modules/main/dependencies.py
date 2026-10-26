@@ -34,7 +34,7 @@ def set_session_cookie(response: Response, user_id: uuid.UUID) -> None:
     response.set_cookie(SESSION_COOKIE, token, max_age=SESSION_COOKIE_MAX_AGE, **_cookie_options())
 
 
-def _session_removal_headers() -> dict[str, str]:
+def session_removal_headers() -> dict[str, str]:
     response = Response()
     response.delete_cookie(SESSION_COOKIE, **_cookie_options())
     return {"set-cookie": response.headers["set-cookie"]}
@@ -67,7 +67,7 @@ async def get_current_user_short_session(
 
 def _session_user(user: UserRead | None, response: Response) -> UserRead:
     if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SESSION_REQUIRED, headers=_session_removal_headers())
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, SESSION_REQUIRED, headers=session_removal_headers())
     set_session_cookie(response, user.id)
     return user
 

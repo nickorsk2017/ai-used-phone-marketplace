@@ -88,7 +88,7 @@ export function AuthModal({ isOpen, onOpenChange, user }: AuthModalProps) {
       onSubmit={submit}
       footer={footerJSX}
     >
-      <TextField control={control} name="first_name" label="First name" autoComplete="given-name" />
+      <TextField control={control} name="first_name" label="First name" autoComplete="given-name" autoFocus />
       <TextField control={control} name="last_name" label="Last name" autoComplete="family-name" />
       <TextField
         control={control}
