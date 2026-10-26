@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2.10",
     "langchain-core>=0.3",
     "pydantic-settings>=2.7",
+    "langsmith>=0.14",
 ]
 
 [tool.uv]

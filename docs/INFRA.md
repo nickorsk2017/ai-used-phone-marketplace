@@ -2,43 +2,41 @@
 
 ## Decision
 
-v1.0 runs on a single VPS (about $5/month) with Docker Compose. Docker images are built in GitHub Actions, the VPS only pulls and runs them.
+v1.0 runs on a single server with Docker Compose. The server and the reverse proxy (for example Nginx or Caddy) are not fixed by the project.
 
 External providers are connected by API keys only:
 
 - Supabase: PostgreSQL.
 - OpenAI: LLM and embeddings.
+- LangSmith: traces and evaluation of the LLM calls, optional: see [EVALUATION.md](ai/EVALUATION.md#langsmith).
 - The vector index is stored in Supabase PostgreSQL with pgvector, no separate vector database.
 
 ## Architecture
 
 ```
-Internet -> Cloudflare -> Caddy (443, HTTPS) -> frontend (Next.js standalone)
-                                              -> backend (FastAPI)
+Internet -> reverse proxy (443, HTTPS) -> frontend (Next.js standalone)
+                                        -> backend (FastAPI)
 
 backend -> Supabase (PostgreSQL)
         -> OpenAI
+        -> LangSmith (optional)
 ```
 
 Docker Compose services:
 
-- `caddy`: reverse proxy, TLS with a Cloudflare Origin Certificate. The certificate is configured in Caddy on the server, not in Docker.
 - `frontend`: Next.js with `output: "standalone"`.
 - `backend`: FastAPI (Uvicorn).
 
 ## Build and deployment
 
-1. `git push` to the main branch.
-2. GitHub Actions builds the `frontend` and `backend` images and pushes them to GitHub Container Registry (GHCR).
-3. `make deploy` connects to the VPS over SSH and runs `docker compose pull` and `docker compose up -d`.
+1. Build the `frontend` and `backend` images.
+2. `make deploy` runs `docker compose pull` and `docker compose up -d` on the server.
 
-The server does not build images. If a build fails, the previous version keeps running.
-
-The image platform must match the VPS architecture (`linux/amd64` or `linux/arm64`).
+The image platform must match the server architecture (`linux/amd64` or `linux/arm64`).
 
 ## Server requirements
 
-- VPS with 1 to 2 GB RAM.
+- Server with 1 to 2 GB RAM.
 - Swap file 2 to 4 GB as a safety margin.
 - Next.js `output: "standalone"` and multi-stage Dockerfiles with `uv` to reduce image size and memory usage.
 
@@ -50,18 +48,6 @@ The image platform must match the VPS architecture (`linux/amd64` or `linux/arm6
 - Secrets are stored in `.env` on the server and are not committed to the repository.
 
 ## Protection
-
-### Cloudflare
-
-- All traffic goes through the Cloudflare proxy. The VPS IP address is not public.
-- DDoS protection on the network and HTTP levels.
-- SSL mode Full (strict): HTTPS from the user to Cloudflare and from Cloudflare to Caddy.
-- Security rules (WAF): managed rules against common attacks (SQL injection, XSS), blocking of known bad bots.
-- Rate limiting rules on `/api/*` per IP against DoS and scraping.
-
-### Server
-
-- Ports 80 and 443 accept traffic only from Cloudflare IP ranges. Direct requests to the VPS IP are blocked.
 
 ### Application
 
@@ -76,7 +62,7 @@ Rate limit in `modules/main`, a separate limit for every module or endpoint. A l
 | `modules/rag` | `POST /api/search` | 3 requests per 10 seconds per client IP, own counter. Protection against cost attacks on OpenAI |
 
 - The counters are stored in the memory of the process. With several Uvicorn workers every worker has its own counters. Shared storage: see [ROADMAP.md](ROADMAP.md#high-load).
-- The client IP comes from `X-Forwarded-For`: Caddy trusts the Cloudflare ranges and forwards the client IP, Uvicorn runs with `--proxy-headers --forwarded-allow-ips=<Caddy address>`. Without these settings all requests have the Caddy IP and share one limit.
+- The client IP comes from `X-Forwarded-For`: the reverse proxy forwards the client IP, Uvicorn runs with `--proxy-headers --forwarded-allow-ips=<proxy address>`. Without these settings all requests have the proxy IP and share one limit.
 
 Stricter limits are planned for the other modules:
 
@@ -86,7 +72,7 @@ A monthly spending limit is set in OpenAI.
 
 ## Makefile targets
 
-- `make deploy`: pull the latest images and restart services on the VPS.
+- `make deploy`: pull the latest images and restart services on the server.
 - `make logs`: show service logs.
 - `make migrate`: apply Alembic migrations. Other migration commands: see [SCHEMAS.md](backend/SCHEMAS.md#migrations).
 - `make up-all`
@@ -98,6 +84,7 @@ A monthly spending limit is set in OpenAI.
 - `make backend-check`
 - `make backend-dev`
 - `make backend-test`
+- `make eval`: LangSmith evaluation, see [EVALUATION.md](ai/EVALUATION.md#run).
 
 ## Improvement
 
@@ -105,8 +92,8 @@ This is the PoC version. Possible improvements are described in [ROADMAP.md](ROA
 
 ## Tradeoffs
 
-### VPS vs Serverless
+### Server vs Serverless
 
-- Single deployment: the Frontend, the Backend and the reverse proxy run in one `docker-compose.yml` with one deployment flow.
+- Single deployment: the Frontend and the Backend run in one `docker-compose.yml` with one deployment flow.
 - Fixed cost and the same Docker Compose setup locally and on the server.
 - Stateless server: data and the search index are stored in Supabase, the server can be recreated with one command.

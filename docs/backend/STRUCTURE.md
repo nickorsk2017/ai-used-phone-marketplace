@@ -16,6 +16,7 @@ backend/
     main/
   migrations/
   seed/
+  eval/
   alembic.ini
   main.py
   conftest.py
@@ -24,11 +25,12 @@ backend/
   .env.example
 ```
 
-- `core`: shared infrastructure of the modules: database settings and connection (see [DESIGN.md](DESIGN.md#database-connection)), `llm.py`: the LangChain client factories (`chat_model`, `embeddings`) and `llm_call`, the structured LLM call with the repeat on an invalid output (see [RAG.md](../ai/RAG.md#errors-and-retries)).
+- `core`: shared infrastructure of the modules: database settings and connection (see [DESIGN.md](DESIGN.md#database-connection)), `llm.py`: the LangChain client factories (`chat_model`, `embeddings`) and `llm_call`, the structured LLM call with the repeat on an invalid output (see [RAG.md](../ai/RAG.md#errors-and-retries)), `tracing.py`: the LangSmith settings and their export to the process environment (see [EVALUATION.md](../ai/EVALUATION.md#tracing)).
 - `schemas`: shared Pydantic schemas that combine the schemas of several modules, for example the response body of `POST /api/search` (`schemas/search.py`: `SearchResponse` with the listings of `phones.schemas`). Imported by `modules/main` only. Schemas of one module stay in the `schemas` of that module.
 - `modules`: domain modules and `main`, one folder per module: see [Module structure](#module-structure).
 - `migrations`: Alembic migrations of all modules, `alembic.ini`: their config. See [SCHEMAS.md](SCHEMAS.md#migrations).
 - `seed`: synthetic seed data and the script that loads it: see [Seed](#seed).
+- `eval`: LangSmith evaluation, one folder per module and one file per AI step, `make eval`: see [Eval](#eval).
 - `main.py`: entry point.
 - `conftest.py`: shared test fixtures (PostgreSQL from `TEST_DATABASE_URL`).
 - `pyproject.toml`, `uv.lock`: uv workspace of the modules, dev tools (pytest, ruff).
@@ -79,3 +81,35 @@ The API for the Frontend. No tables and no models.
 - `run.py`: the load script, `make seed`. It checks that `model_code` and `model_name` are unique, creates the missing users, computes the embeddings of the missing listings with `rag.services.embed_listing`, then creates the listings and their `search_index` records in one transaction with `phones.services.create_phone` and `rag.services.index`. Guardrail 1 is not called: the seed text is trusted.
 - A repeated run adds only the missing users and listings: a listing is identified by its user and `model_code`. `make seed-reset` deletes the seed users, their listings and their index records first.
 - The domain modules have no lookup of a user by WhatsApp and no delete, so `run.py` reads the seed user IDs and deletes the seed rows with SQL directly. This is the only code outside a module that touches module tables, besides `migrations/`.
+
+## Eval
+
+`backend/eval/` holds the LangSmith evaluation: see [EVALUATION.md](../ai/EVALUATION.md#datasets).
+
+```
+eval/
+  rag/
+    parse.py
+    clarification.py
+    ranking.py
+  phones/
+    description.py
+    hallucinated_models.py
+  metrics.py
+  schemas.py
+  upload.py
+  run.py
+  tests/
+```
+
+- One folder per backend module, one file per evaluated AI step. The file holds everything about the step: the cases, the target and the metrics, and exports `DATASET` (`EvalDataset`). A new step is a new file in the folder of its module.
+- `rag/__init__.py`, `phones/__init__.py`: `DATASETS`, the datasets of the module in the run order.
+- The target calls only the public `services` of its module. A step file may reuse the target of another step of the same module (`clarification.py` uses the target of `parse.py`).
+- `metrics.py`: metrics shared by several steps (`valid_output`). A metric of one step stays in the file of that step.
+- `schemas.py`: `EvalDataset` (name, cases, target, metrics) and `Example`.
+- `upload.py`: creates the LangSmith dataset or replaces its examples when the cases changed.
+- `rag/ranking.py`: the only step on the database: the rank metrics and the relevance rules over the seed, see [EVALUATION.md](../ai/EVALUATION.md#ranking).
+- `database.py`: prepares the evaluation database of `EVAL_DATABASE_URL` for a run with `rag.ranking`: creates it when missing, applies the migrations, reloads the seed when its fingerprint changed.
+- `run.py`: `make eval`. Collects the datasets of all modules, uploads the cases, runs the experiments and prints the results table. `--local` (`make eval LOCAL=1`) runs the targets and the metrics without LangSmith.
+- `tests/`: unit tests of the cases and the metrics, no LLM and no LangSmith calls. A part of `make backend-test`.
+- `eval` is not a module: it imports only the `services` and `schemas` of the modules, and the settings of `modules/phones` and `modules/rag` for the model names in the experiment metadata.

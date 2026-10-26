@@ -5,6 +5,8 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import config_errors as database_config_errors
+from core.tracing import config_errors as tracing_config_errors
+from core.tracing import configure_tracing
 from modules.main.config import config_errors, get_settings
 from modules.main.routers import health, my_listings, phones, search, users
 from modules.phones.config import config_errors as phones_config_errors
@@ -15,7 +17,15 @@ def check_config() -> None:
     """Stop the process when required environment variables are missing: docs/backend/DESIGN.md#configuration."""
     # `dict.fromkeys`: a variable shared by several modules (`OPENAI_API_KEY`) is listed once.
     errors = list(
-        dict.fromkeys([*database_config_errors(), *config_errors(), *phones_config_errors(), *rag_config_errors()])
+        dict.fromkeys(
+            [
+                *database_config_errors(),
+                *tracing_config_errors(),
+                *config_errors(),
+                *phones_config_errors(),
+                *rag_config_errors(),
+            ]
+        )
     )
     if errors:
         lines = "\n".join(f"  - {error}" for error in errors)
@@ -36,6 +46,8 @@ def _red(text: str) -> str:
 
 def create_app() -> FastAPI:
     check_config()
+    # Before the first LLM client: LangChain reads the LangSmith settings from the environment only.
+    configure_tracing()
     app = FastAPI(title="Second-Hand Mobile E-market API")
     app.add_middleware(
         CORSMiddleware,

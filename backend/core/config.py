@@ -1,3 +1,4 @@
+import os
 from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
@@ -10,6 +11,10 @@ ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 ASYNC_DRIVER_PREFIX = "postgresql+asyncpg://"
 
+# Tests and `make eval`: docs/backend/DESIGN.md#configuration. Read from the environment only, never from `.env`.
+TEST_DATABASE_URL_DEFAULT = "postgresql://postgres@localhost:5432/app_test"
+EVAL_DATABASE_URL_DEFAULT = "postgresql://postgres@localhost:5432/app_eval"
+
 
 def to_async_url(url: str) -> str:
     """Supabase gives `postgres://` or `postgresql://` URLs, SQLAlchemy needs the asyncpg driver."""
@@ -17,6 +22,16 @@ def to_async_url(url: str) -> str:
         if url.startswith(prefix):
             return ASYNC_DRIVER_PREFIX + url.removeprefix(prefix)
     return url
+
+
+def test_database_url() -> str:
+    """The test database: never the database of `DATABASE_URL`."""
+    return os.environ.get("TEST_DATABASE_URL", TEST_DATABASE_URL_DEFAULT)
+
+
+def eval_database_url() -> str:
+    """The evaluation database of `make eval`: never the working or the test database."""
+    return os.environ.get("EVAL_DATABASE_URL", EVAL_DATABASE_URL_DEFAULT)
 
 
 class DatabaseSettings(BaseSettings):

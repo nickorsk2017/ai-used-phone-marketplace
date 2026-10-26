@@ -128,6 +128,7 @@ Other modules use search only through the `modules/rag` interface. The storage b
 - `index(session, phone, embedding)`: creates the search index record. `session` is the transaction of the listing: [Indexing](#indexing). `phone` holds the copied listing fields. `embedding` is the result of `embed_listing`, so a retried transaction does not call the embeddings API again: see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
 - `search(session, prompt)`: runs the pipeline of [Architecture](#architecture) and returns `SearchResult`: the ranked listing IDs, at most 20, or the [clarification](#clarification) text. Raises `PromptBlocked` when Guardrail 2 blocks the prompt. Response of the endpoint: see [API.md](../backend/API.md#search).
 - `delete(phone_id)`.
+- `parse_prompt(prompt)`: the [LLM call](#llm-output-structure) of the pipeline alone, with the same model, prompt and validation retry. Returns `ParsedPrompt`, without Guardrail 2 and without the database. Used by the evaluation only: see [EVALUATION.md](EVALUATION.md#datasets).
 
 ## Errors and Retries
 
@@ -146,7 +147,7 @@ Reranking errors do not fail the search: see [RERANKING.md](RERANKING.md#errors)
 - The graph in the code matches the diagram in [Architecture](#architecture), one node per step.
 - The state between the steps is explicit: the parsed filters and preferences, the model codes, the found listings.
 - `RetryPolicy` is set per node, for example only on the LLM node.
-- Each node is traced in LangSmith without additional code: see [EVALUATION.md](EVALUATION.md).
+- Each node is traced in LangSmith as a child span of the `rag.search` run without additional code: see [EVALUATION.md](EVALUATION.md#tracing).
 
 Not used:
 

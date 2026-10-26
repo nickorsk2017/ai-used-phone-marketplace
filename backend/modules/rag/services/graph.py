@@ -13,6 +13,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import RetryPolicy
+from langsmith import get_current_run_tree
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.llm import INVALID_LLM_OUTPUT, LLM_VALIDATION_ATTEMPTS
@@ -32,6 +33,8 @@ from modules.rag.schemas.search import (
 from modules.rag.services import ai, crud, ranking
 
 logger = logging.getLogger(__name__)
+
+SEARCH_RUN_NAME = "rag.search"
 
 # Validation errors only, no wait: network errors are retried by the client.
 VALIDATION_RETRY = RetryPolicy(
@@ -104,6 +107,13 @@ def _listing(candidate: Candidate) -> dict:
     return candidate.model_dump(mode="json", exclude={"source", "distance"})
 
 
+def _mark_rerank_fallback(error: Exception) -> None:
+    """Metadata of the `rerank` span: docs/ai/EVALUATION.md#tracing. No span when tracing is off."""
+    run = get_current_run_tree()
+    if run is not None:
+        run.add_metadata({"rerank_fallback": True, "rerank_error": type(error).__name__})
+
+
 async def rerank(state: SearchState) -> SearchState:
     """One LLM call; on any error the candidates are returned without it: docs/ai/RERANKING.md#errors."""
     candidates = state["candidates"]
@@ -122,8 +132,9 @@ async def rerank(state: SearchState) -> SearchState:
         )
         scores = ranking.validate_scores(output, candidates)
         ranked = ranking.rank(candidates, scores, get_settings().rerank_threshold, prefer_condition)
-    except Exception:
+    except Exception as error:
         logger.exception("Reranking failed, the candidates are returned without reranking")
+        _mark_rerank_fallback(error)
         ranked = ranking.fallback_order(candidates, prefer_condition)
     return {"result": ranking.top(ranking.diversity_limit(ranked, single_model))}
 
@@ -148,7 +159,10 @@ def get_graph() -> CompiledStateGraph:
 
 
 async def run(session: AsyncSession, prompt: str) -> SearchResult:
-    state = await get_graph().ainvoke({"prompt": prompt}, config={"configurable": {"session": session}})
+    # Root run `rag.search`, one child span per node: docs/ai/EVALUATION.md#tracing. The session is not a
+    # primitive value, so LangChain does not copy it from `configurable` to the trace metadata.
+    config: RunnableConfig = {"run_name": SEARCH_RUN_NAME, "tags": ["rag"], "configurable": {"session": session}}
+    state = await get_graph().ainvoke({"prompt": prompt}, config=config)
     clarification = state["parsed"].clarification
     if clarification is not None:
         return SearchResult(clarification=clarification)

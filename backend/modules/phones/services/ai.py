@@ -6,6 +6,7 @@ They return Pydantic schemas, never ORM objects.
 from functools import lru_cache
 
 from langchain_core.language_models import BaseChatModel
+from langsmith import traceable
 from pydantic import BaseModel
 
 from core.llm import chat_model, llm_call
@@ -35,6 +36,8 @@ def _to_description(output: BaseModel) -> PhoneDescription | None:
     return PhoneDescription.model_validate(generated.model_dump(exclude={"model_found"}))
 
 
+# Root runs in LangSmith: docs/ai/EVALUATION.md#tracing.
+@traceable(name="phones.description", tags=["phones"])
 async def generate_description(model_name: str) -> PhoneDescription | None:
     """Description and model data by the model name. `None` when the model does not exist."""
     return await llm_call(
@@ -50,6 +53,7 @@ def _to_allowed(output: BaseModel) -> bool:
     return GuardrailVerdict.model_validate(output, from_attributes=True).allowed
 
 
+@traceable(name="phones.guardrail", tags=["phones"])
 async def check_listing(data: PhoneCreate) -> bool:
     """Guardrail 1: Backend Regex, then the LLM Guardrail for clean text only.
 

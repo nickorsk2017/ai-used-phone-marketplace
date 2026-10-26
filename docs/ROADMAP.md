@@ -13,8 +13,8 @@ Product features out of scope for v1.0: see [TASK.md](TASK.md#out-of-scope-for-v
 - Secrets in a secret manager instead of `.env` on the server.
 - Paid tier of Supabase without project pausing and with higher limits.
 - Full authorization and registration: login, logout, expiration and revocation of a session.
-- CI quality gate: unit tests, integration tests and LLM evaluation (DeepEval) before deployment.
-- Online search metrics from real users: position of the clicked result, share of searches with a Phone details view, share of searches with a Deal click. A larger evaluation dataset from real prompts.
+- CI quality gate: unit tests, integration tests and LLM evaluation (`make eval LOCAL=1`) before deployment.
+- Online search metrics from real users: position of the clicked result, share of searches with a Phone details view, share of searches with a Deal click, sent as LangSmith feedback on the `rag.search` trace. A larger evaluation dataset from real prompts.
 - Monitoring, alerts and centralized logs.
 - AI model router to compare several LLM models by quality, cost and latency.
 - Sitemap of the Phone details pages (`app/sitemap.ts`) with a Backend endpoint that lists all active listings with their update dates.

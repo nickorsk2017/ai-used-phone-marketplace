@@ -5,7 +5,7 @@ BACKEND_DIR := backend
 UV := uv --directory $(BACKEND_DIR)
 UV_RUN := $(UV) run --all-packages
 
-.PHONY: help frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset up-all
+.PHONY: help frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset eval up-all
 
 help:
 	@echo "All:"
@@ -24,6 +24,7 @@ help:
 	@echo "  make migration MSG=\"add phone index\"  Autogenerate the next numbered migration"
 	@echo "  make seed              Apply the migrations, then load the seed users and listings into the database"
 	@echo "  make seed-reset        Delete the seed users and listings, then load them again"
+	@echo "  make eval              Run the LangSmith evaluation of all datasets (DATASET=rag.parse runs one, LOCAL=1 without LangSmith), real OpenAI calls"
 
 # ============================================================
 # All
@@ -78,6 +79,9 @@ seed: migrate
 
 seed-reset: migrate
 	$(UV_RUN) python -m seed.run --reset
+
+eval:
+	$(UV_RUN) python -m eval.run $(if $(DATASET),--dataset $(DATASET)) $(if $(LOCAL),--local)
 
 # ============================================================
 # Infrastructure

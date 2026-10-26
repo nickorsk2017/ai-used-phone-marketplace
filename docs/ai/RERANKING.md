@@ -85,7 +85,7 @@ The reranker is an LLM and can return wrong IDs. The output is checked in code:
 ## Errors
 
 - Network and provider errors: the retry of the LangChain model client, see [RAG.md](RAG.md#errors-and-retries).
-- Validation error or failed retries: no repeated LLM call. The search returns the candidates without reranking: model code results first, then pgvector results by distance, with the condition preference from [Ranking rules](#ranking-rules). The error is logged in LangSmith. The search does not return HTTP 503 because of reranking.
+- Validation error or failed retries: no repeated LLM call. The search returns the candidates without reranking: model code results first, then pgvector results by distance, with the condition preference from [Ranking rules](#ranking-rules). The error is logged, and the `rerank` span in LangSmith gets the metadata `rerank_fallback: true` and the error type: see [EVALUATION.md](EVALUATION.md#tracing). The search does not return HTTP 503 because of reranking.
 
 ## Evaluation
 

@@ -1,0 +1,11 @@
+# LOG — 2026-10-26-langsmith-eval-tracing
+- 2026-10-26T05:27 Engineer INIT created, complexity=HIGH, next_actor=Planner
+- 2026-10-26T05:35 Engineer TASK.md written R1-R6 A1-A4, docs updated (EVALUATION#langsmith,#run, RAG#module-interface,#orchestration, RERANKING#errors, backend/DESIGN#configuration, backend/STRUCTURE#eval, INFRA), next_actor=Planner
+- 2026-10-26T05:42 Planner PLAN v1 P1-P10, stage=PLANNED, next_actor=Engineer (HIGH approval)
+- 2026-10-26T05:44 Engineer approved PLAN v1 (chat), stage=APPROVED, next_actor=Executor
+- 2026-10-26T15:42 Engineer docs: EVALUATION#deepeval runs on TEST_DATABASE_URL with seed-reload before the metrics (out of scope of this task)
+- 2026-10-26T18:40 Executor EXEC v1 P1-P9, 50 new DB-free tests, stage=EXECUTED, next_actor=Validator
+- 2026-10-26T18:46 Validator VALIDATION v1 FAIL I1(logic), iteration=1, next_actor=Executor
+- 2026-10-26T18:48 Executor EXEC v2 I1 fixed (EVALUATION#tracing rag.parse), open_issues cleared, stage=EXECUTED, next_actor=Validator
+- 2026-10-26T18:50 Validator VALIDATION v2 PASS, stage=DONE
+- 2026-10-26T18:32 Engineer CLOSED done=True; archived to tasks/DONE/2026-10

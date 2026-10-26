@@ -15,7 +15,7 @@ AI components of the system: models, orchestration, vector search, guardrails an
 - LangChain is the provider-agnostic interface for chat models and embeddings: see [Tradeoffs](#langchain-and-the-model-provider).
 - LangGraph orchestrates the search pipeline: see [RAG.md](RAG.md#orchestration-langgraph).
 - pgvector in PostgreSQL (Supabase) for the vector index (rationale: [RAG.md](RAG.md#pgvector-vs-a-dedicated-search-engine)).
-- DeepEval and LangSmith for Evaluation, Observability and cost: see [EVALUATION.md](EVALUATION.md).
+- LangSmith for Evaluation, Observability and cost, ranking metrics as code: see [EVALUATION.md](EVALUATION.md).
 
 ## AI in the Backend modules
 

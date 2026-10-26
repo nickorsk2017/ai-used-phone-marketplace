@@ -43,7 +43,7 @@ Each document has a Tradeoffs section with the rationale and the limitations of 
 
 ## Documentation as the source of truth
 
-The project is designed in the documentation first. Code is generated after that, and the documentation is the main reference for the Claude agent.
+Documentation is the basis of development: the system is designed first, the code is written after that. The approach is used for code quality, not for the test task: the agent generates code from a reviewed design, the Validator checks the code against it, and every decision has one source of truth.
 
 1. Every product decision, module, data model and API contract is described in `docs/` before implementation.
 2. The Claude agent generates code from the documentation and follows the rules in [CLAUDE.md](CLAUDE.md) and in the `CLAUDE.md` of each subsystem.
@@ -59,7 +59,7 @@ System-level documents:
 | --- | --- |
 | [TASK.md](docs/TASK.md) | Product, problem, business requirements, scope of v1.0 |
 | [BRIEF.md](BRIEF.md) | Design document: problem, harnesses, interface, architecture |
-| [INFRA.md](docs/INFRA.md) | VPS, Docker Compose, deployment, protection |
+| [INFRA.md](docs/INFRA.md) | Docker Compose, deployment, protection |
 | [ROADMAP.md](docs/ROADMAP.md) | Production version and architecture under growth |
 
 Backend:
@@ -108,8 +108,7 @@ Feature specifications:
 │   ├── frontend/         Frontend architecture, structure, schemas
 │   ├── ai/               RAG, guardrails, evaluation
 │   └── features/         Page specifications
-├── .github/workflows/    Build of Docker images, push to GHCR
-├── docker-compose.yml    caddy, frontend, backend
+├── docker-compose.yml    frontend, backend
 ├── Makefile              Deployment and migration targets
 ├── CLAUDE.md             Rules for AI coding agents
 └── README.md
@@ -127,7 +126,7 @@ docker compose up --build
 make migrate
 ```
 
-The first command creates the environment file. Fill in the Supabase connection and the OpenAI API key in `.env`. The second command builds and starts the `caddy`, `frontend` and `backend` services. The third command applies the Alembic migrations of the Backend to Supabase.
+The first command creates the environment file. Fill in the Supabase connection and the OpenAI API key in `.env`. The second command builds and starts the `frontend` and `backend` services. The third command applies the Alembic migrations of the Backend to Supabase.
 
 ## Deployment
 
@@ -136,4 +135,4 @@ make deploy
 make logs
 ```
 
-`make deploy` pulls the latest images from GHCR on the VPS and restarts the services. `make logs` shows the service logs. The images are built by GitHub Actions on push to the main branch. Details: [INFRA.md](docs/INFRA.md#build-and-deployment).
+`make deploy` pulls the latest images on the server and restarts the services. `make logs` shows the service logs. Details: [INFRA.md](docs/INFRA.md#build-and-deployment).

@@ -22,6 +22,7 @@ Rules for AI coding agents working in `backend/modules/phones/`. Project rules: 
 - Every LLM call uses structured output (Pydantic). Network errors are retried by the client; an invalid output is repeated once by `llm_call` in `core/llm.py`, then raised.
 - System prompts live in `prompts/`, one file per prompt: `description.py` (model description), `guardrail.py` (Guardrail 1). User text goes to the LLM only inside the delimiters of these files.
 - Guardrail 1 checks `model_code`, `model_name`, `description` and `condition_note`: [docs/ai/GUARDRAILS.md](../../../docs/ai/GUARDRAILS.md#guardrail-1-phone-saving). The `model_code` format is a schema rule: [docs/backend/SCHEMAS.md](../../../docs/backend/SCHEMAS.md#phones-modulesphones).
+- LangSmith: `generate_description` and `check_listing` are `traceable` root runs `phones.description` and `phones.guardrail`: [docs/ai/EVALUATION.md](../../../docs/ai/EVALUATION.md#tracing).
 - `services/guardrails.py` is internal (not re-exported by `services/__init__.py`) and keeps the rules of `frontend/utils/guardrails.ts`. A rule change is made on both sides, with the same test cases.
 
 ## Database

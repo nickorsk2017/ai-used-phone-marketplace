@@ -31,7 +31,9 @@ Each module can be moved to a separate microservice later, the `main` module can
 ## Configuration
 
 - Each module reads its settings from environment variables and `backend/.env` (template: `backend/.env.example`). The path to `backend/.env` is resolved from the settings file (`core/config.py` and the `config.py` of each module), so the settings do not depend on the current directory. Environment variables take precedence over `backend/.env`. Secrets: see [INFRA.md](../INFRA.md).
-- `core`: `DATABASE_URL` (required).
+- Tests: `TEST_DATABASE_URL` (environment only, default `postgresql://postgres@localhost:5432/app_test`), the test database, never the database of `DATABASE_URL`.
+- `make eval`: `EVAL_DATABASE_URL` (environment only, default `postgresql://postgres@localhost:5432/app_eval`), the evaluation database, never the database of `DATABASE_URL` or of `TEST_DATABASE_URL`: see [EVALUATION.md](../ai/EVALUATION.md#evaluation-database).
+- `core`: `DATABASE_URL` (required). LangSmith: `LANGSMITH_TRACING` (optional, default `false`), `LANGSMITH_API_KEY` (required when `LANGSMITH_TRACING=true` and for `make eval`), `LANGSMITH_PROJECT` (optional, default `second-hand-mobile-e-market`), `LANGSMITH_ENDPOINT` (optional, the LangSmith default when empty, for example the EU region). `core` exports them to the process environment on startup, before the first LLM client is created, because LangChain reads them from the environment only: see [EVALUATION.md](../ai/EVALUATION.md#tracing).
 - `modules/main`: `CORS_ORIGINS` (optional, default `http://localhost:3000`), `SESSION_SECRET` (required, at least 32 characters, passed to `modules/auth`), `COOKIE_SECURE` (optional, default `true`). Session and cookie: see [AUTH.md](AUTH.md#session-token).
 - `modules/phones`: `OPENAI_API_KEY` (required), `DESCRIPTION_MODEL` (optional, default `gpt-5.6-luna`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
 - `modules/rag`: `OPENAI_API_KEY` (required), `EMBEDDING_MODEL` (optional, default `text-embedding-3-small`, see [SCHEMAS.md](SCHEMAS.md#search_index-modulesrag)), `SEARCH_MODEL` (optional, default `gpt-5.6-luna`, the prompt parsing of [RAG.md](../ai/RAG.md#llm-output-structure)), `RERANK_MODEL` (optional, default `gpt-5.6-luna`, see [RERANKING.md](../ai/RERANKING.md#reranker)), `RERANK_THRESHOLD` (optional, default `0.3`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, Guardrail 2, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
@@ -70,7 +72,7 @@ Roadmap: see [ROADMAP.md](../ROADMAP.md#high-load).
 
 ## Protection
 
-Cloudflare, rate limits and security rules: see [INFRA.md](../INFRA.md#protection).
+Rate limits and security rules: see [INFRA.md](../INFRA.md#protection).
 
 ## Tradeoffs
 

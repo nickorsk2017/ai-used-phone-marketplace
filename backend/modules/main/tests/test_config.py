@@ -7,6 +7,8 @@ import pytest
 from core.config import ENV_FILE as DATABASE_ENV_FILE
 from core.config import DatabaseSettings
 from core.config import get_settings as get_database_settings
+from core.tracing import TracingSettings
+from core.tracing import get_settings as get_tracing_settings
 from modules.main.app import check_config
 from modules.main.config import ENV_FILE as MAIN_ENV_FILE
 from modules.main.config import MainSettings
@@ -24,7 +26,9 @@ def no_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("SESSION_SECRET", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    for settings in (DatabaseSettings, MainSettings, PhonesSettings, RagSettings):
+    for variable in ("LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"):
+        monkeypatch.delenv(variable, raising=False)
+    for settings in (DatabaseSettings, TracingSettings, MainSettings, PhonesSettings, RagSettings):
         monkeypatch.setitem(settings.model_config, "env_file", None)
     clear_settings()
     yield
@@ -32,7 +36,13 @@ def no_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def clear_settings() -> None:
-    for get_settings in (get_database_settings, get_main_settings, get_phones_settings, get_rag_settings):
+    for get_settings in (
+        get_database_settings,
+        get_tracing_settings,
+        get_main_settings,
+        get_phones_settings,
+        get_rag_settings,
+    ):
         get_settings.cache_clear()
 
 

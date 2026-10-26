@@ -10,17 +10,23 @@ from pathlib import Path
 import httpx
 import pytest
 from fastapi import FastAPI
+from langsmith import Client
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "postgresql://postgres@localhost:5432/app_test")
+from core.config import test_database_url
+
+TEST_DATABASE_URL = test_database_url()
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["SESSION_SECRET"] = "test-session-secret-" + "x" * 32
 # httpx sends `Secure` cookies over HTTPS only, the test client uses `http://test`.
 os.environ["COOKIE_SECURE"] = "false"
 # The OpenAI clients are replaced by stubs in the tests (`ai_stubs`): no real calls.
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
+# Tests never send traces to LangSmith: docs/ai/EVALUATION.md#tracing.
+os.environ["LANGSMITH_TRACING"] = "false"
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 from core.database import get_engine, transaction  # noqa: E402
 from modules.main.app import create_app  # noqa: E402
@@ -142,3 +148,25 @@ def ai_stubs(monkeypatch: pytest.MonkeyPatch) -> AiStubs:
     monkeypatch.setattr(rag_ai, "get_search_model", lambda: stubs.search_parse)
     monkeypatch.setattr(rag_ai, "get_rerank_model", lambda: stubs.rerank)
     return stubs
+
+
+class TraceCapture(Client):
+    """LangSmith client that keeps the runs in memory instead of sending them: `tracing_context(client=...)`."""
+
+    def __init__(self) -> None:
+        super().__init__(api_url="http://localhost:1", api_key="test-langsmith-key", auto_batch_tracing=False)
+        self.captured: dict[object, dict] = {}
+
+    def create_run(self, name: str, inputs: dict, run_type: str, **kwargs: object) -> None:
+        self.captured[kwargs.get("id")] = {"name": name, "inputs": inputs, **kwargs}
+
+    def update_run(self, run_id: object, **kwargs: object) -> None:
+        self.captured.setdefault(run_id, {}).update(kwargs)
+
+    def run(self, name: str) -> dict:
+        matches = [run for run in self.captured.values() if run.get("name") == name]
+        assert len(matches) == 1, f"one run {name} expected, got {len(matches)}"
+        return matches[0]
+
+    def metadata(self, name: str) -> dict:
+        return (self.run(name).get("extra") or {}).get("metadata", {})

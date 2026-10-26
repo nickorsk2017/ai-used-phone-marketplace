@@ -10,6 +10,7 @@ dependencies = [
     "pydantic-settings>=2.7",
     "langchain-core>=0.3",
     "langchain-openai>=0.3",
+    "langsmith>=0.14",
 ]
 
 [dependency-groups]
@@ -31,7 +32,7 @@ members = ["modules/users", "modules/auth", "modules/phones", "modules/rag", "mo
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
-testpaths = ["modules"]
+testpaths = ["modules", "eval"]
 
 [tool.ruff]
 line-length = 120
