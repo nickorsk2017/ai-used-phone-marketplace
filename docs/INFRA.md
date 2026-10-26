@@ -65,11 +65,22 @@ The image platform must match the VPS architecture (`linux/amd64` or `linux/arm6
 
 ### Application
 
-Rate limit in `modules/main` per IP and per user. Stricter limits apply to:
+Rate limit in `modules/main`, a separate limit for every module or endpoint. A limit is a FastAPI dependency on the router or the endpoint. An exceeded limit returns 429 with `Retry-After`.
 
-- LLM endpoints (`/api/search`, `/api/phones/description`): protection against cost attacks on OpenAI.
+| Module | Endpoints | Limit |
+| --- | --- | --- |
+| `modules/users` | `/api/users/*` | 5 requests per 10 seconds per client IP, shared by all endpoints of the module |
+| `modules/phones` | `POST /api/phones/description` | 1 request per 10 seconds per client IP, own counter. Protection against cost attacks on OpenAI |
+| `modules/phones` | `POST /api/phones` | 1 request per 10 seconds per client IP, own counter. Protection against spam listings and cost attacks |
+| `modules/phones` | `GET /api/my-listings` | 3 requests per 10 seconds per client IP, own counter. The page load and the reload after `POST /api/phones` ([MY_LISTING.md](features/MY_LISTING.md#add-phone-flow)) fit in the limit |
+
+- The counters are stored in the memory of the process. With several Uvicorn workers every worker has its own counters. Shared storage: see [ROADMAP.md](ROADMAP.md#high-load).
+- The client IP comes from `X-Forwarded-For`: Caddy trusts the Cloudflare ranges and forwards the client IP, Uvicorn runs with `--proxy-headers --forwarded-allow-ips=<Caddy address>`. Without these settings all requests have the Caddy IP and share one limit.
+
+Stricter limits are planned for the other modules:
+
+- `/api/search`: protection against cost attacks on OpenAI.
 - `GET /api/phones/{id}/contact`: protection of WhatsApp numbers against scraping.
-- `POST /api/phones`: protection against spam listings.
 
 A monthly spending limit is set in OpenAI.
 
@@ -77,7 +88,16 @@ A monthly spending limit is set in OpenAI.
 
 - `make deploy`: pull the latest images and restart services on the VPS.
 - `make logs`: show service logs.
-- `make migrate`: apply Alembic migrations to Supabase.
+- `make migrate`: apply Alembic migrations. Other migration commands: see [SCHEMAS.md](backend/SCHEMAS.md#migrations).
+- `make up-all`
+- `make frontend-install`
+- `make frontend-build`
+- `make frontend-start`
+- `make frontend-dev`
+- `make backend-install`
+- `make backend-check`
+- `make backend-dev`
+- `make backend-test`
 
 ## Improvement
 

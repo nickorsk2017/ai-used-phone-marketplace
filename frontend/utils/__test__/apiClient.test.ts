@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { USER_ID_HEADER, USER_ID_STORAGE_KEY } from "@/config/api";
 import { apiRequest, NETWORK_ERROR_STATUS } from "@/utils/apiClient";
 
 const okSchema = z.object({ ok: z.boolean() });
@@ -13,7 +12,6 @@ function mockFetch(response: Response) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  window.localStorage.clear();
 });
 
 describe("apiRequest", () => {
@@ -29,16 +27,15 @@ describe("apiRequest", () => {
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify({ prompt: "x" }));
     expect(init.headers["Content-Type"]).toBe("application/json");
-    expect(init.headers[USER_ID_HEADER]).toBeUndefined();
+    expect(init.headers["X-User-Id"]).toBeUndefined();
   });
 
-  it("sends X-User-Id when the session has a user", async () => {
-    window.localStorage.setItem(USER_ID_STORAGE_KEY, "user-1");
+  it("sends the session cookie with every request", async () => {
     const fetchMock = mockFetch(Response.json({}));
 
     await apiRequest("/api/search");
 
-    expect(fetchMock.mock.calls[0][1].headers[USER_ID_HEADER]).toBe("user-1");
+    expect(fetchMock.mock.calls[0][1].credentials).toBe("include");
   });
 
   it("returns the status and the Backend detail on an error response", async () => {

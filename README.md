@@ -127,7 +127,7 @@ docker compose up --build
 make migrate
 ```
 
-The first command creates the environment file. Fill in the Supabase connection and the OpenAI API key in `.env`. The second command builds and starts the `caddy`, `frontend` and `backend` services. The third command applies the Alembic migrations of all Backend modules to Supabase.
+The first command creates the environment file. Fill in the Supabase connection and the OpenAI API key in `.env`. The second command builds and starts the `caddy`, `frontend` and `backend` services. The third command applies the Alembic migrations of the Backend to Supabase.
 
 ## Deployment
 

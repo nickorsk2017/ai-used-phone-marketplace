@@ -12,12 +12,13 @@ Product features out of scope for v1.0: see [TASK.md](TASK.md#out-of-scope-for-v
 - Separate staging and production environments.
 - Secrets in a secret manager instead of `.env` on the server.
 - Paid tier of Supabase without project pausing and with higher limits.
-- Full authorization and registration with signed sessions.
+- Full authorization and registration: login, logout, expiration and revocation of a session.
 - CI quality gate: unit tests, integration tests and LLM evaluation (DeepEval) before deployment.
 - Online search metrics from real users: position of the clicked result, share of searches with a Phone details view, share of searches with a Deal click. A larger evaluation dataset from real prompts.
 - Monitoring, alerts and centralized logs.
 - AI model router to compare several LLM models by quality, cost and latency.
 - Sitemap of the Phone details pages (`app/sitemap.ts`) with a Backend endpoint that lists all active listings with their update dates.
+- `Idempotency-Key` on `POST /api/phones`: a retried request does not create a second listing, see [DESIGN.md](backend/DESIGN.md#transaction-retry-without-idempotency).
 - Cache of `POST /api/phones/description` results by model. The same model name (for example, `iPhone 16`) always returns the same description and model data, without a new LLM call.
 - Model catalog instead of the model code from the LLM: see [RAG.md](ai/RAG.md#production-model-catalog).
 - Design System for the Frontend on Atomic Design: atoms, molecules and organisms in `frontend/ui` on top of the HeroUI tokens from `themes/theme.css`. Storybook as the component catalog with stories for each state and visual regression tests.

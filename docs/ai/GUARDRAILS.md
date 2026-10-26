@@ -21,6 +21,12 @@ Three layers (rationale: [Tradeoffs](#three-layers-for-phone-saving)):
 2. Backend Regex. Checks for credit card numbers, phone numbers and links to other services.
 3. LLM Guardrail (OpenAI `gpt-5.6-luna`). Checks for toxic content, for fraud cases that Regex did not catch and for Prompt Injection.
 
+- Checked text: `model_code`, `model_name`, `description` and `condition_note`. `model_code` also has a fixed format and `os` is an enum: both are validated by the schema before the guardrails, see [SCHEMAS.md](../backend/SCHEMAS.md#phones-modulesphones). The Backend Regex rules are the same as the Frontend Regex rules (`frontend/utils/guardrails.ts`).
+- The Backend Regex runs first. A blocked text does not reach the LLM Guardrail.
+- LLM output: `{"allowed": false, "category": "toxic" | "fraud" | "prompt_injection" | null}`. The listing text is passed inside delimiters as data.
+- A blocked listing returns HTTP 422. The response does not name the layer or the category.
+- Fail closed: if the LLM Guardrail call fails after its retries ([RAG.md](RAG.md#errors-and-retries)), the listing is not saved and the endpoint returns HTTP 503.
+
 ## Guardrail 2: Search Prompt
 
 The user prompt on the Search page passes Guardrail 2 before the search LLM call: see [RAG.md](RAG.md#architecture). The LLM Guardrail (OpenAI `gpt-5.6-luna`) detects Prompt Injection. A prompt with Prompt Injection is not passed to the search LLM.

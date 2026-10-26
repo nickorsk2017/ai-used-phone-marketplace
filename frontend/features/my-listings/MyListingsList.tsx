@@ -10,11 +10,10 @@ interface MyListingsListProps {
   status: MyListingsStatus;
   listings: Entity.Phone[];
   onRetry: () => void;
-  onAdd: () => void;
   onDelete: (phone: Entity.Phone) => void;
 }
 
-export function MyListingsList({ status, listings, onRetry, onAdd, onDelete }: MyListingsListProps) {
+export function MyListingsList({ status, listings, onRetry, onDelete }: MyListingsListProps) {
   if (status === "idle" || status === "loading") {
     return <CardSkeletonGrid count={SKELETON_COUNT} label="My listings" />;
   }
@@ -34,9 +33,8 @@ export function MyListingsList({ status, listings, onRetry, onAdd, onDelete }: M
 
   if (listings.length === 0) {
     return (
-      <EmptyState className="flex flex-col items-center gap-4 py-12">
+      <EmptyState className="flex flex-col items-center py-12">
         <p className="text-muted">You have no listings yet. Add your first phone for sale.</p>
-        <Button onPress={onAdd}>Add new phone</Button>
       </EmptyState>
     );
   }

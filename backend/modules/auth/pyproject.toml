@@ -1,0 +1,9 @@
+[project]
+name = "auth"
+version = "0.1.0"
+description = "Session token, authentication of a request and the owner check: docs/backend/AUTH.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false

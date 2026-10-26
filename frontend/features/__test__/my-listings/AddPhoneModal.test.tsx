@@ -1,7 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { USER_ID_STORAGE_KEY } from "@/config/api";
 import { MyListingsPage } from "@/features/my-listings/MyListingsPage";
 import { type ApiHandler, mockApi, requestBody } from "@/mocks/mockApi";
 import { testListing } from "@/mocks/testListing";
@@ -21,16 +20,15 @@ afterEach(() => {
 
 describe("MyListingsPage add phone flow", () => {
   async function openAddModal(handlers: Record<string, ApiHandler>) {
-    window.localStorage.setItem(USER_ID_STORAGE_KEY, testUser.id);
     const fetchMock = mockApi({
-      "GET /api/users/u-1": () => Response.json(testUser),
+      "GET /api/users/me": () => Response.json(testUser),
       "GET /api/my-listings": () => Response.json({ listings: [] }),
       ...handlers,
     });
     const u = userEvent.setup();
     render(<MyListingsPage />);
     await screen.findByText("You have no listings yet. Add your first phone for sale.");
-    await u.click(screen.getAllByRole("button", { name: "Add new phone" })[0]!);
+    await u.click(screen.getByRole("button", { name: "Add new phone" }));
     const dialog = await screen.findByRole("dialog", { name: "Add new phone" });
     return { u, dialog, fetchMock };
   }
@@ -58,10 +56,15 @@ describe("MyListingsPage add phone flow", () => {
     expect(within(dialog).getByRole("button", { name: "Publish" })).toBeDisabled();
   });
 
-  it("generates the data, saves the listing and adds it to the list", async () => {
+  it("generates the data, saves the listing and loads the list again", async () => {
+    let saved = false;
     const { u, dialog, fetchMock } = await openAddModal({
+      "GET /api/my-listings": () => Response.json({ listings: saved ? [testListing] : [] }),
       "POST /api/phones/description": () => Response.json(testPhoneDescription),
-      "POST /api/phones": () => Response.json(testListing, { status: 201 }),
+      "POST /api/phones": () => {
+        saved = true;
+        return Response.json(testListing, { status: 201 });
+      },
     });
 
     await generate(u, dialog);
@@ -75,6 +78,8 @@ describe("MyListingsPage add phone flow", () => {
 
     expect(await screen.findByRole("link", { name: testListing.model_name })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const listingsCalls = fetchMock.mock.calls.filter(([url]) => url === "/api/my-listings");
+    expect(listingsCalls).toHaveLength(2);
     const saveCall = fetchMock.mock.calls.find(([url, init]) => url === "/api/phones" && init?.method === "POST");
     expect(requestBody(saveCall![1]!)).toEqual({
       model_code: "A2483",
@@ -102,6 +107,49 @@ describe("MyListingsPage add phone flow", () => {
 
     expect(await within(dialog).findByText("Remove card numbers, phone numbers and links. Buyers see your WhatsApp number separately.")).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => url === "/api/phones")).toBe(false);
+  });
+
+  it("shows the rejection text when Guardrail 1 blocks the listing", async () => {
+    const { u, dialog } = await openAddModal({
+      "POST /api/phones/description": () => Response.json(testPhoneDescription),
+      "POST /api/phones": () => Response.json({ detail: "The listing was not accepted" }, { status: 422 }),
+    });
+
+    await generate(u, dialog);
+    await within(dialog).findByText(testPhoneDescription.model_name);
+    await fillListing(u, dialog, "Light scratches");
+    await u.click(within(dialog).getByRole("button", { name: "Publish" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "The listing was not accepted. The description and the condition note may only describe the phone model and its condition. Phone numbers, websites and other contact details are not allowed.",
+    );
+    expect(within(dialog).getByLabelText("Condition note")).toHaveValue("Light scratches");
+  });
+
+  it("shows the rate limit text on the description generation", async () => {
+    const { u, dialog } = await openAddModal({
+      "POST /api/phones/description": () => Response.json({ detail: "Too many requests" }, { status: 429 }),
+    });
+
+    await generate(u, dialog);
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Too many requests. Wait 10 seconds and try again.");
+    expect(within(dialog).getByLabelText("Model name")).toHaveValue("iphone 13 pro");
+  });
+
+  it("shows the rate limit text on publish and keeps the form data", async () => {
+    const { u, dialog } = await openAddModal({
+      "POST /api/phones/description": () => Response.json(testPhoneDescription),
+      "POST /api/phones": () => Response.json({ detail: "Too many requests" }, { status: 429 }),
+    });
+
+    await generate(u, dialog);
+    await within(dialog).findByText(testPhoneDescription.model_name);
+    await fillListing(u, dialog, "Light scratches");
+    await u.click(within(dialog).getByRole("button", { name: "Publish" }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Too many requests. Wait 10 seconds and try again.");
+    expect(within(dialog).getByLabelText("Condition note")).toHaveValue("Light scratches");
   });
 
   it("keeps the form data when saving fails", async () => {

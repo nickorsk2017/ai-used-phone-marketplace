@@ -11,9 +11,13 @@ import {
   type ModelNameValues,
 } from "@/schemas/myListingsFormSchemas";
 
-export type SaveError = "rejected" | "failed" | null;
+export type SaveError = "rejected" | "rate_limited" | "failed" | null;
+
+export type GenerateError = "rate_limited" | "failed" | null;
 
 const VALIDATION_ERROR_STATUS = 422;
+
+const RATE_LIMIT_STATUS = 429;
 
 const EMPTY_LISTING: ListingFormInput = {
   description: "",
@@ -28,7 +32,7 @@ const EMPTY_LISTING: ListingFormInput = {
 export function useAddPhoneFlow(onOpenChange: (isOpen: boolean) => void) {
   const addListing = useMyListingsStore((state) => state.add);
   const [generated, setGenerated] = useState<Entity.PhoneDescription | null>(null);
-  const [generateFailed, setGenerateFailed] = useState(false);
+  const [generateError, setGenerateError] = useState<GenerateError>(null);
   const [saveError, setSaveError] = useState<SaveError>(null);
 
   const modelForm = useForm<ModelNameValues>({
@@ -44,7 +48,7 @@ export function useAddPhoneFlow(onOpenChange: (isOpen: boolean) => void) {
     modelForm.reset({ model_name: "" });
     listingForm.reset(EMPTY_LISTING);
     setGenerated(null);
-    setGenerateFailed(false);
+    setGenerateError(null);
     setSaveError(null);
   };
 
@@ -58,7 +62,7 @@ export function useAddPhoneFlow(onOpenChange: (isOpen: boolean) => void) {
   const clearGenerated = () => setGenerated(null);
 
   const generate = modelForm.handleSubmit(async ({ model_name }) => {
-    setGenerateFailed(false);
+    setGenerateError(null);
     setSaveError(null);
     const response = await PhoneService.generateDescription(model_name);
     if (!response.success) {
@@ -66,7 +70,7 @@ export function useAddPhoneFlow(onOpenChange: (isOpen: boolean) => void) {
       if (response.status === VALIDATION_ERROR_STATUS) {
         modelForm.setError("model_name", { message: "Model not found. Check that the model really exists." });
       } else {
-        setGenerateFailed(true);
+        setGenerateError(response.status === RATE_LIMIT_STATUS ? "rate_limited" : "failed");
       }
       return;
     }
@@ -96,14 +100,18 @@ export function useAddPhoneFlow(onOpenChange: (isOpen: boolean) => void) {
       changeOpen(false);
       return;
     }
-    setSaveError(response.status === VALIDATION_ERROR_STATUS ? "rejected" : "failed");
+    if (response.status === VALIDATION_ERROR_STATUS) {
+      setSaveError("rejected");
+    } else {
+      setSaveError(response.status === RATE_LIMIT_STATUS ? "rate_limited" : "failed");
+    }
   });
 
   return {
     modelForm,
     listingForm,
     generated,
-    generateFailed,
+    generateError,
     saveError,
     changeOpen,
     clearGenerated,

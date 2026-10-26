@@ -23,7 +23,7 @@ The page has no images in v1.0 (see `TASK.md`, Out of scope).
 ## Deal Flow
 
 1. The user clicks the "Deal" button.
-2. The Frontend calls `GET /api/phones/{id}/contact` with the listing ID. The `user_id` of the listing owner is not sent to the Frontend (see [AUTH.md](../backend/AUTH.md#access)). The WhatsApp number is loaded only on click to protect it from scrapers and spam.
+2. The Frontend calls `GET /api/phones/{id}/contact` with the listing ID. The user ID of the listing owner is not sent to the Frontend (see [AUTH.md](../backend/AUTH.md#access)). The WhatsApp number is loaded only on click to protect it from scrapers and spam.
 3. A modal window shows the WhatsApp number and a "Copy WhatsApp number" button.
 4. The button copies the number to the clipboard with the Clipboard API and shows a "Copied" confirmation.
 

@@ -30,7 +30,7 @@ A person who sells a used phone.
 
 Why each technology is chosen: see [Rationale](#rationale).
 
-- Backend: a modular monolith on Python and FastAPI with the modules `auth`, `phones`, `rag` and `main`. Pydantic, SQLAlchemy, Alembic. See [backend/DESIGN.md](backend/DESIGN.md).
+- Backend: a modular monolith on Python and FastAPI with the modules `users`, `auth`, `phones`, `rag` and `main`. Pydantic, SQLAlchemy, Alembic. See [backend/DESIGN.md](backend/DESIGN.md).
 - Frontend: Next.js, React, TypeScript, HeroUI v3, Tailwind CSS, React Hook Form, Zod, Zustand. See [frontend/DESIGN.md](frontend/DESIGN.md).
 - AI: OpenAI through LangChain, LangGraph for the search pipeline, pgvector for the vector index, DeepEval and LangSmith for evaluation. See [ai/DESIGN.md](ai/DESIGN.md).
 - Database: PostgreSQL (Supabase) with the pgvector extension. See [backend/SCHEMAS.md](backend/SCHEMAS.md).
@@ -63,7 +63,7 @@ Why each technology is chosen: see [Rationale](#rationale).
 - Python: the AI libraries of the project (LangChain, LangGraph, DeepEval, LangSmith) are Python-first. The Backend and the AI pipeline are one codebase in one language.
 - FastAPI: asynchronous. LLM and embedding calls are network I/O, one process serves other requests while it waits for the provider. The OpenAPI schema is generated from the Pydantic models.
 - Pydantic: one schema library for the API contracts and for the structured LLM output. An LLM response that fails validation is retried: see [RAG.md](ai/RAG.md#errors-and-retries).
-- SQLAlchemy and Alembic: ORM and versioned migrations of each module. The schema of a module moves to a separate database together with the module.
+- SQLAlchemy and Alembic: ORM and versioned migrations, one chain for the Backend: see [SCHEMAS.md](backend/SCHEMAS.md#migrations).
 
 ### Database
 

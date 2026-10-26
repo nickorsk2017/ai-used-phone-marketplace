@@ -94,17 +94,23 @@ The `search_index` table is the read model for search: see [SCHEMAS.md](../backe
 - Create, update and delete of a listing change `phones` and `search_index` in one transaction. The index cannot get out of sync with the data.
 - On update, the embedding is regenerated only if the model name, description or condition note changed. Price, condition and specification changes update the copied fields only.
 - The embedding is generated synchronously in the request, there is no background task.
+- The embedding input: `model_name`, `description` and `condition_note`, joined by new lines.
 
 ### Module interface
 
-Other modules use search only through the `modules/rag` interface: `index(phone)`, `delete(phone_id)`, `search(query, filters)`. The storage behind the interface is an implementation detail.
+Other modules use search only through the `modules/rag` interface. The storage behind the interface is an implementation detail.
+
+- `embed_listing(model_name, description, condition_note)`: the embedding of the listing text. A slow network call, made before the transaction of the listing.
+- `index(session, phone, embedding)`: creates the search index record. `session` is the transaction of the listing: [Indexing](#indexing). `phone` holds the copied listing fields. `embedding` is the result of `embed_listing`, so a retried transaction does not call the embeddings API again: see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
+- `delete(phone_id)`, `search(query, filters)`.
 
 ## Errors and Retries
 
 Each kind of error is retried in one place only: see [Tradeoffs](#retries-in-one-place).
 
 1. Network and provider errors of the LLM and embeddings API (timeout, HTTP 429, HTTP 5xx): the built-in retry of the LangChain model client, `max_retries=2` with exponential backoff.
-2. The LLM response fails Pydantic validation: one repeated call of the LLM node (LangGraph `RetryPolicy`, 2 attempts in total). The node policy retries validation errors only.
+2. The LLM response fails Pydantic validation: one repeated call of the LLM node (LangGraph `RetryPolicy`, 2 attempts in total). The node policy retries validation errors only. The LLM calls of `modules/phones` (description generation, Guardrail 1) repeat the call once by the same rule, without LangGraph.
+3. Transient database errors of the listing and search index transaction: one repeated transaction, see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
 
 Reranking errors do not fail the search: see [RERANKING.md](RERANKING.md#errors). If the retries of the other nodes fail, `POST /api/search` returns HTTP 503 and the error is logged: see [EVALUATION.md](EVALUATION.md). The Search page shows the error message: see [SEARCH_PAGE.md](../features/SEARCH_PAGE.md#errors).
 

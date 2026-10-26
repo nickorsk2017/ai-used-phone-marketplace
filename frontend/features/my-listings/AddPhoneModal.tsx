@@ -23,7 +23,7 @@ const CONDITION_OPTIONS = (Object.keys(CONDITION_LABELS) as Entity.PhoneConditio
 }));
 
 export function AddPhoneModal({ isOpen, onOpenChange }: AddPhoneModalProps) {
-  const { modelForm, listingForm, generated, generateFailed, saveError, changeOpen, clearGenerated, generate, publish } =
+  const { modelForm, listingForm, generated, generateError, saveError, changeOpen, clearGenerated, generate, publish } =
     useAddPhoneFlow(onOpenChange);
   const listingControl = listingForm.control;
 
@@ -31,16 +31,24 @@ export function AddPhoneModal({ isOpen, onOpenChange }: AddPhoneModalProps) {
     if (!saveError) {
       return null;
     }
-    return (
-      <Alert
-        title={
-          saveError === "rejected"
-            ? "The listing was not accepted. Check the description and the condition note."
-            : "The listing was not saved. Please try again."
-        }
-      />
-    );
+    if (saveError === "rejected") {
+      return <Alert title="The listing was not accepted. The description and the condition note may only describe the phone model and its condition. Phone numbers, websites and other contact details are not allowed." />;
+    }
+    if (saveError === "rate_limited") {
+      return <Alert title="Too many requests. Wait 10 seconds and try again." />;
+    }
+    return <Alert title="The listing was not saved. Please try again." />;
   }, [saveError]);
+
+  const generateErrorJSX = useMemo(() => {
+    if (!generateError) {
+      return null;
+    }
+    if (generateError === "rate_limited") {
+      return <Alert title="Too many requests. Wait 10 seconds and try again." />;
+    }
+    return <Alert title="Something went wrong. Please try again later." />;
+  }, [generateError]);
 
   const listingFormJSX = useMemo(() => {
     if (!generated) {
@@ -135,7 +143,7 @@ export function AddPhoneModal({ isOpen, onOpenChange }: AddPhoneModalProps) {
         </Button>
       </form>
 
-      {generateFailed ? <Alert title="Something went wrong. Please try again later." /> : null}
+      {generateErrorJSX}
 
       {listingFormJSX}
     </Modal>

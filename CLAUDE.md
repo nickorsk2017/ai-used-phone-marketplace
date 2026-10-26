@@ -40,7 +40,7 @@ The rules below are specific to this project and take precedence over `.claude/C
 ### Validator
 
 - The Validator checks the implementation against `docs/` in addition to `TASK.md` and `PLAN.md`. A discrepancy is reported as an issue, as required by section 1.
-- The Validator runs the unit and integration tests of the affected modules. If the task changes an AI step (prompts, models, RAG, guardrails), the Validator also runs `make eval`: see [EVALUATION.md](docs/ai/EVALUATION.md).
+- The Validator runs the unit and integration tests of the affected modules. `make eval` is not a part of the validation in v1.0: the Engineer runs it manually, see [EVALUATION.md](docs/ai/EVALUATION.md#run).
 - Failed tests or eval regressions are a FAIL with an issue of type `logic`.
 
 ### File names

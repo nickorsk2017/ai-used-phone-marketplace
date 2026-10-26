@@ -37,6 +37,9 @@ v1.0 evaluates the steps where AI can fail regardless of the data volume: prompt
 
 `make eval` runs the LangSmith evaluations, the DeepEval metrics and the plain tests, and prints a results table.
 
+- v1.0 (PoC): the Engineer runs `make eval` manually after a change of an AI step (prompts, models, RAG, guardrails). It is not run on every commit and is not a part of the Validator checks.
+- Production: LLM evaluation is a CI quality gate before deployment: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+
 ## Results
 
 To be filled after the implementation.

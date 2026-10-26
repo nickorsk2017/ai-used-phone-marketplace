@@ -1,28 +1,21 @@
 import { successResponse } from "@/utils/apiClient";
-import { clearUserId, getUserId, setUserId } from "@/utils/session";
 import { UserService } from "./UserService";
 
-const USER_NOT_FOUND_STATUS = 404;
+const NO_SESSION_STATUS = 401;
 
+/** Browser session: docs/backend/AUTH.md#session-flow. The Backend owns the session cookie. */
 export const AuthService = {
+  /** `null` when there is no valid session. */
   async getCurrentUser(): Promise<Api.Response<Entity.User | null>> {
-    const userId = getUserId();
-    if (!userId) {
-      return successResponse(null);
-    }
-    const response = await UserService.getById(userId);
-    if (!response.success && response.status === USER_NOT_FOUND_STATUS) {
-      clearUserId();
+    const response = await UserService.getCurrent();
+    if (!response.success && response.status === NO_SESSION_STATUS) {
       return successResponse(null);
     }
     return response;
   },
 
-  async register(body: Api.CreateUserRequest): Promise<Api.Response<Entity.User>> {
-    const response = await UserService.create(body);
-    if (response.success) {
-      setUserId(response.data.id);
-    }
-    return response;
+  /** The Backend sets the session cookie on success. */
+  register(body: Api.CreateUserRequest): Promise<Api.Response<Entity.User>> {
+    return UserService.create(body);
   },
 };
