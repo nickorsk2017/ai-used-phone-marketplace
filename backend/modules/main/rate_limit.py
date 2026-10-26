@@ -55,4 +55,8 @@ class RateLimit:
             instance.reset()
 
 
-auth_rate_limit = RateLimit(limit=5, window_seconds=10)
+users_rate_limit = RateLimit(limit=5, window_seconds=10)
+# One counter per endpoint of `modules/phones`.
+phones_description_rate_limit = RateLimit(limit=1, window_seconds=10)
+phones_create_rate_limit = RateLimit(limit=1, window_seconds=10)
+my_listings_rate_limit = RateLimit(limit=3, window_seconds=10)

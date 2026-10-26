@@ -1,10 +1,18 @@
-"""Rate limit of `modules/auth`: docs/INFRA.md#application."""
+"""Rate limits of `modules/users` and `modules/phones`: docs/INFRA.md#application."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI
 
+from conftest import AiStubs, StubChatModel
 from modules.main.app import create_app
 from modules.main.rate_limit import RateLimit
+from modules.main.tests.test_phones import ALLOWED, LISTING, USER
+from modules.phones.schemas import GeneratedDescription
+
+NOT_FOUND = GeneratedDescription(model_found=False)
 
 
 def client_from(ip: str) -> httpx.AsyncClient:
@@ -12,10 +20,10 @@ def client_from(ip: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=transport, base_url="http://test")
 
 
-async def test_sixth_auth_request_in_window_is_limited() -> None:
+async def test_sixth_users_request_in_window_is_limited() -> None:
     async with client_from("10.0.0.1") as client:
         for _ in range(5):
-            assert (await client.get("/api/users/u-1")).status_code == 401
+            assert (await client.get("/api/users/me")).status_code == 401
         response = await client.post("/api/users", json={})
     assert response.status_code == 429
     assert 1 <= int(response.headers["retry-after"]) <= 10
@@ -24,15 +32,15 @@ async def test_sixth_auth_request_in_window_is_limited() -> None:
 async def test_limit_is_per_client_ip() -> None:
     async with client_from("10.0.0.1") as client:
         for _ in range(5):
-            await client.get("/api/users/u-1")
+            await client.get("/api/users/me")
     async with client_from("10.0.0.2") as client:
-        assert (await client.get("/api/users/u-1")).status_code == 401
+        assert (await client.get("/api/users/me")).status_code == 401
 
 
 async def test_health_is_not_limited() -> None:
     async with client_from("10.0.0.1") as client:
         for _ in range(5):
-            await client.get("/api/users/u-1")
+            await client.get("/api/users/me")
         assert (await client.get("/api/health")).status_code == 200
 
 
@@ -57,3 +65,43 @@ async def test_window_expires_and_stale_clients_are_swept() -> None:
         assert (await client.get("/limited")).status_code == 200
     assert list(limit._hits) == ["10.0.0.1"]
     assert len(limit._hits["10.0.0.1"]) == 1
+
+
+def phones_app(ai_stubs: AiStubs) -> FastAPI:
+    ai_stubs.description = StubChatModel(*[NOT_FOUND] * 5)
+    ai_stubs.guardrail = StubChatModel(*[ALLOWED] * 5)
+    return create_app()
+
+
+@asynccontextmanager
+async def signed_in_client(app: FastAPI, ip: str = "10.0.0.1") -> AsyncIterator[httpx.AsyncClient]:
+    transport = httpx.ASGITransport(app=app, client=(ip, 12345))
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        assert (await client.post("/api/users", json=USER)).status_code == 201
+        yield client
+
+
+async def test_description_is_limited_to_one_request_per_10_seconds(ai_stubs: AiStubs) -> None:
+    async with signed_in_client(phones_app(ai_stubs)) as client:
+        assert (await client.post("/api/phones/description", json={"model_name": "iPhone 25"})).status_code == 422
+        response = await client.post("/api/phones/description", json={"model_name": "iPhone 13 Pro"})
+    assert response.status_code == 429
+    assert 1 <= int(response.headers["retry-after"]) <= 10
+
+
+async def test_create_is_limited_and_counters_are_independent(ai_stubs: AiStubs) -> None:
+    async with signed_in_client(phones_app(ai_stubs)) as client:
+        assert (await client.post("/api/phones/description", json={"model_name": "iPhone 25"})).status_code == 422
+        assert (await client.post("/api/phones", json=LISTING)).status_code == 201
+        response = await client.post("/api/phones", json=LISTING)
+    assert response.status_code == 429
+    assert "retry-after" in response.headers
+
+
+async def test_my_listings_allows_the_page_load_and_the_reload_after_publish(ai_stubs: AiStubs) -> None:
+    async with signed_in_client(phones_app(ai_stubs)) as client:
+        assert (await client.get("/api/my-listings")).status_code == 200
+        assert (await client.post("/api/phones", json=LISTING)).status_code == 201
+        assert (await client.get("/api/my-listings")).status_code == 200
+        assert (await client.get("/api/my-listings")).status_code == 200
+        assert (await client.get("/api/my-listings")).status_code == 429

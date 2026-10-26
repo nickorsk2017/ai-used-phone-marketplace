@@ -4,7 +4,7 @@ The Frontend does not own data models. Data models and API contracts are defined
 
 - `types/`: TypeScript types of the API, in the same shape as the Backend Pydantic schemas. See [Types](#types).
 - Forms and API responses are validated with Zod schemas in `schemas/`.
-- Browser storage: `user_id` in `localStorage`, see [AUTH.md](../backend/AUTH.md#session-flow).
+- Browser storage: none for the session. The session is an `HttpOnly` cookie, the Frontend cannot read it: see [AUTH.md](../backend/AUTH.md#session-flow).
 
 ## Types
 

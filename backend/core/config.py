@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
@@ -35,10 +36,15 @@ def get_settings() -> DatabaseSettings:
     return DatabaseSettings()
 
 
-def config_errors() -> list[str]:
-    """Missing or invalid database settings, one line per variable. Empty when the settings are valid."""
+def settings_errors(load: Callable[[], object]) -> list[str]:
+    """Missing or invalid settings of `load`, one line per variable. Empty when the settings are valid."""
     try:
-        get_settings()
+        load()
     except ValidationError as exc:
         return [f"{str(error['loc'][0]).upper() if error['loc'] else '?'}: {error['msg']}" for error in exc.errors()]
     return []
+
+
+def config_errors() -> list[str]:
+    """Missing or invalid database settings."""
+    return settings_errors(get_settings)

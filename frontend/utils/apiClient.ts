@@ -1,6 +1,5 @@
 import type { z } from "zod";
-import { API_BASE_URL, USER_ID_HEADER } from "@/config/api";
-import { getUserId } from "./session";
+import { API_BASE_URL } from "@/config/api";
 
 export const NETWORK_ERROR_STATUS = 0;
 
@@ -36,10 +35,6 @@ function buildHeaders(hasBody: boolean): Record<string, string> {
   if (hasBody) {
     headers["Content-Type"] = "application/json";
   }
-  const userId = getUserId();
-  if (userId) {
-    headers[USER_ID_HEADER] = userId;
-  }
   return headers;
 }
 
@@ -54,6 +49,8 @@ export async function apiRequest<TData = void>(
       headers: buildHeaders(options.body !== undefined),
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: options.signal,
+      // The session is an HttpOnly cookie set by the Backend: docs/backend/AUTH.md#session-flow.
+      credentials: "include",
     });
   } catch (error) {
     const isAborted = error instanceof DOMException && error.name === "AbortError";

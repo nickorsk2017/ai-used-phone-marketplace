@@ -1,0 +1,15 @@
+[project]
+name = "rag"
+version = "0.1.0"
+description = "Search index and search: docs/ai/RAG.md"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.0.36",
+    "pydantic>=2.10",
+    "pgvector>=0.3",
+    "langchain-core>=0.3",
+    "pydantic-settings>=2.7",
+]
+
+[tool.uv]
+package = false

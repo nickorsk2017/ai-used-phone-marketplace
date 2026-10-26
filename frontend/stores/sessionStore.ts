@@ -54,9 +54,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     if (!currentUser) {
       return errorResponse(NO_USER_STATUS, "No user in the session");
     }
-    const response = await UserService.update(currentUser.id, body);
+    const response = await UserService.updateCurrent(body);
     if (response.success) {
       set({ user: response.data });
+    } else if (response.status === NO_USER_STATUS) {
+      // The session is no longer valid: docs/backend/AUTH.md#session-flow step 4.
+      set({ status: "anonymous", user: null });
     }
     return response;
   },

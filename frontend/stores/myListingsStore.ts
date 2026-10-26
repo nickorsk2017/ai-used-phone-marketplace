@@ -23,10 +23,16 @@ export const useMyListingsStore = create<MyListingsState>((set) => ({
 
   add: async (body) => {
     const response = await PhoneService.create(body);
-    if (response.success) {
-      const listing = response.data;
-      set((state) => ({ listings: [listing, ...state.listings] }));
+    if (!response.success) {
+      return response;
     }
+    const created = response.data;
+    const reloaded = await PhoneService.getMyListings();
+    set((state) =>
+      reloaded.success
+        ? { status: "ready", listings: reloaded.data }
+        : { listings: [created, ...state.listings.filter((listing) => listing.id !== created.id)] },
+    );
     return response;
   },
 

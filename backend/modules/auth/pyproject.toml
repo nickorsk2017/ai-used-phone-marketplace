@@ -1,13 +1,9 @@
 [project]
 name = "auth"
 version = "0.1.0"
-description = "Users and the browser session: docs/backend/AUTH.md"
+description = "Session token, authentication of a request and the owner check: docs/backend/AUTH.md"
 requires-python = ">=3.12"
-dependencies = [
-    "sqlalchemy[asyncio]>=2.0.36",
-    "pydantic>=2.10",
-    "pydantic-settings>=2.7",
-]
+dependencies = []
 
 [tool.uv]
 package = false

@@ -30,7 +30,7 @@ A person who sells a used phone.
 
 Why each technology is chosen: see [Rationale](#rationale).
 
-- Backend: a modular monolith on Python and FastAPI with the modules `auth`, `phones`, `rag` and `main`. Pydantic, SQLAlchemy, Alembic. See [backend/DESIGN.md](backend/DESIGN.md).
+- Backend: a modular monolith on Python and FastAPI with the modules `users`, `auth`, `phones`, `rag` and `main`. Pydantic, SQLAlchemy, Alembic. See [backend/DESIGN.md](backend/DESIGN.md).
 - Frontend: Next.js, React, TypeScript, HeroUI v3, Tailwind CSS, React Hook Form, Zod, Zustand. See [frontend/DESIGN.md](frontend/DESIGN.md).
 - AI: OpenAI through LangChain, LangGraph for the search pipeline, pgvector for the vector index, DeepEval and LangSmith for evaluation. See [ai/DESIGN.md](ai/DESIGN.md).
 - Database: PostgreSQL (Supabase) with the pgvector extension. See [backend/SCHEMAS.md](backend/SCHEMAS.md).

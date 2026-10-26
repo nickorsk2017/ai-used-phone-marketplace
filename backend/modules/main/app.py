@@ -6,12 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import config_errors as database_config_errors
 from modules.main.config import config_errors, get_settings
-from modules.main.routers import health, users
+from modules.main.routers import health, my_listings, phones, users
+from modules.phones.config import config_errors as phones_config_errors
+from modules.rag.config import config_errors as rag_config_errors
 
 
 def check_config() -> None:
     """Stop the process when required environment variables are missing: docs/backend/DESIGN.md#configuration."""
-    errors = [*database_config_errors(), *config_errors()]
+    # `dict.fromkeys`: a variable shared by several modules (`OPENAI_API_KEY`) is listed once.
+    errors = list(
+        dict.fromkeys([*database_config_errors(), *config_errors(), *phones_config_errors(), *rag_config_errors()])
+    )
     if errors:
         lines = "\n".join(f"  - {error}" for error in errors)
         message = (
@@ -35,6 +40,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origin_list,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -42,5 +48,7 @@ def create_app() -> FastAPI:
     api = APIRouter(prefix="/api")
     api.include_router(health.router)
     api.include_router(users.router)
+    api.include_router(phones.router)
+    api.include_router(my_listings.router)
     app.include_router(api)
     return app

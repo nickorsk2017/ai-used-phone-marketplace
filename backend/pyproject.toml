@@ -8,6 +8,8 @@ dependencies = [
     "asyncpg>=0.30",
     "alembic>=1.14",
     "pydantic-settings>=2.7",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.3",
 ]
 
 [dependency-groups]
@@ -22,7 +24,7 @@ dev = [
 package = false
 
 [tool.uv.workspace]
-members = ["modules/auth", "modules/phones", "modules/main"]
+members = ["modules/users", "modules/auth", "modules/phones", "modules/rag", "modules/main"]
 
 
 [tool.pytest.ini_options]

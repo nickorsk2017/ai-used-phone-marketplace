@@ -8,15 +8,19 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from core.config import get_settings
-from modules.auth import models  # noqa: F401  registers the tables in the metadata
-from modules.auth.database import AuthBase
+from modules.phones import models as phones_models  # noqa: F401  registers the tables in the metadata
+from modules.phones.database import PhonesBase
+from modules.rag import models as rag_models  # noqa: F401
+from modules.rag.database import RagBase
+from modules.users import models as users_models  # noqa: F401
+from modules.users.database import UsersBase
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Metadata of every module with tables. A new module adds its Base here.
-target_metadata = [AuthBase.metadata]
+target_metadata = [UsersBase.metadata, PhonesBase.metadata, RagBase.metadata]
 
 
 def run_migrations_offline() -> None:

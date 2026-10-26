@@ -1,12 +1,10 @@
-import { API_STUB_ENABLED } from "@/config/api";
 import {
   myListingsResponseSchema,
   phoneContactSchema,
   phoneDescriptionSchema,
   phoneSchema,
 } from "@/schemas/phoneSchemas";
-import { apiRequest, errorResponse, successResponse } from "@/utils/apiClient";
-import { getStubContact, getStubPhone } from "./stubs/phoneStub";
+import { apiRequest, successResponse } from "@/utils/apiClient";
 
 const NOT_FOUND_STATUSES = new Set([404, 422]);
 
@@ -16,9 +14,6 @@ function phonePath(id: string): string {
 
 export const PhoneService = {
   async getById(id: string): Promise<Api.Response<Entity.Phone | null>> {
-    if (API_STUB_ENABLED) {
-      return successResponse(getStubPhone(id));
-    }
     const response = await apiRequest(phonePath(id), { schema: phoneSchema });
     if (!response.success && NOT_FOUND_STATUSES.has(response.status)) {
       return successResponse(null);
@@ -27,17 +22,10 @@ export const PhoneService = {
   },
 
   async getContact(id: string): Promise<Api.Response<Entity.PhoneContact>> {
-    if (API_STUB_ENABLED) {
-      const contact = getStubContact(id);
-      return contact ? successResponse(contact) : errorResponse(404, "Contact not found");
-    }
     return apiRequest(`${phonePath(id)}/contact`, { schema: phoneContactSchema });
   },
 
   async getMyListings(): Promise<Api.Response<Entity.Phone[]>> {
-    if (API_STUB_ENABLED) {
-      return successResponse([]);
-    }
     const response = await apiRequest("/api/my-listings", { schema: myListingsResponseSchema });
     return response.success ? successResponse(response.data.listings) : response;
   },
