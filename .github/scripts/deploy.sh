@@ -11,11 +11,11 @@ compose() {
 }
 
 echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-compose pull backend frontend
+compose pull backend frontend < /dev/null
 docker logout ghcr.io
 
-compose run --rm --no-deps backend python -c "from modules.main.app import check_config; check_config()"
+compose run --rm -T --no-deps backend python -c "from modules.main.app import check_config; check_config()" < /dev/null
 compose up -d --wait db
-compose run --rm backend alembic upgrade head
+compose run --rm -T backend alembic upgrade head < /dev/null
 compose up -d --wait --no-build --remove-orphans
 docker image prune -f
