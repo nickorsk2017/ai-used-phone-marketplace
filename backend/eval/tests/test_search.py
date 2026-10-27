@@ -5,7 +5,7 @@ import math
 import pytest
 
 import conftest  # noqa: F401  # test environment: no traces, stub keys
-from eval.rag import ranking
+from eval.rag import search
 from eval.rag.search import CASES, DATASET, hit_rate, ndcg, precision, recall, reciprocal_rank
 from eval.schemas import DATASET_MAX_CASES, DATASET_MIN_CASES
 from seed.run import LISTINGS
@@ -84,14 +84,14 @@ def test_case_count() -> None:
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case.prompt for case in CASES])
-def test_case_has_1_to_19_relevant_seed_listings(case: ranking.RankingCase) -> None:
+def test_case_has_1_to_19_relevant_seed_listings(case: search.RankingCase) -> None:
     grades = case.grades([listing.phone for listing in LISTINGS])
-    assert 1 <= len(grades) < ranking.RESULTS_LIMIT
-    assert set(grades.values()) <= {ranking.RELEVANT, ranking.HIGHLY_RELEVANT}
+    assert 1 <= len(grades) < search.RESULTS_LIMIT
+    assert set(grades.values()) <= {search.RELEVANT, search.HIGHLY_RELEVANT}
 
 
 @pytest.mark.parametrize("case", CASES, ids=[case.prompt for case in CASES])
-def test_rule_is_not_only_price_and_condition(case: ranking.RankingCase) -> None:
+def test_rule_is_not_only_price_and_condition(case: search.RankingCase) -> None:
     """Price and condition are applied in SQL. With the same price and condition for every listing, a rule that
     checks only them selects all listings or none: the rule must still select some listings and not others."""
     phones = [listing.phone for listing in LISTINGS]
@@ -105,5 +105,5 @@ def test_rule_is_not_only_price_and_condition(case: ranking.RankingCase) -> None
 def test_example_outputs_are_the_grades() -> None:
     example = CASES[2].example()
     assert example.inputs == {"prompt": "iPhone 15 Pro"}
-    assert example.outputs["grades"]["A2848"] == ranking.HIGHLY_RELEVANT
-    assert example.outputs["grades"]["A2846"] == ranking.RELEVANT
+    assert example.outputs["grades"]["A2848"] == search.HIGHLY_RELEVANT
+    assert example.outputs["grades"]["A2846"] == search.RELEVANT
