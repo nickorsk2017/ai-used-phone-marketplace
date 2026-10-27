@@ -26,7 +26,6 @@ from modules.phones.config import get_settings as get_phones_settings
 from modules.rag.config import config_errors as rag_config_errors
 from modules.rag.config import get_settings as get_rag_settings
 
-MAX_CONCURRENCY = 4
 STATS_ATTEMPTS = 5
 STATS_WAIT_SECONDS = 3
 
@@ -37,6 +36,7 @@ DATASETS: dict[str, EvalDataset] = {dataset.name: dataset for dataset in [*rag.D
 @dataclass
 class DatasetReport:
     dataset: str
+    label: str | None = None
     experiment: str | None = None
     scores: dict[str, list[float]] = field(default_factory=dict)
     latencies: list[float] = field(default_factory=list)
@@ -78,10 +78,10 @@ async def run_langsmith(client: Client, project: str, dataset: EvalDataset) -> D
         evaluators=dataset.metrics,
         experiment_prefix=dataset.name,
         metadata=models_metadata(),
-        max_concurrency=MAX_CONCURRENCY,
+        max_concurrency=dataset.max_concurrency,
         client=client,
     )
-    report = DatasetReport(dataset=dataset.name, experiment=results.experiment_name)
+    report = DatasetReport(dataset=dataset.name, label=dataset.label, experiment=results.experiment_name)
     async for row in results:
         run = row["run"]
         if run.error:
@@ -116,8 +116,8 @@ def apply_metric(metric: Metric, example: Example, outputs: dict[str, Any]) -> d
 
 
 async def run_local(dataset: EvalDataset) -> DatasetReport:
-    report = DatasetReport(dataset=dataset.name)
-    limit = asyncio.Semaphore(MAX_CONCURRENCY)
+    report = DatasetReport(dataset=dataset.name, label=dataset.label)
+    limit = asyncio.Semaphore(dataset.max_concurrency)
 
     async def one(example: Example) -> None:
         async with limit:
@@ -147,11 +147,12 @@ def table(reports: list[DatasetReport]) -> str:
     header = ("Dataset", "Metric", "Score", "Cases", "p50 s", "p95 s", "Errors", "Tokens", "Cost $")
     rows = [header]
     for report in reports:
+        name = report.dataset if report.label is None else f"{report.dataset} ({report.label})"
         p50, p95 = percentile(report.latencies, 0.5), percentile(report.latencies, 0.95)
         for key, scores in report.scores.items():
             rows.append(
                 (
-                    report.dataset,
+                    name,
                     key,
                     f"{statistics.fmean(scores):.2f}",
                     str(len(scores)),

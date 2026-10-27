@@ -93,7 +93,7 @@ eval/
   rag/
     parse.py
     clarification.py
-    ranking.py
+    search.py
   phones/
     description.py
     hallucinated_models.py
@@ -110,8 +110,8 @@ eval/
 - `metrics.py`: metrics shared by several steps (`valid_output`). A metric of one step stays in the file of that step.
 - `schemas.py`: `EvalDataset` (name, cases, target, metrics) and `Example`.
 - `upload.py`: creates the LangSmith dataset or replaces its examples when the cases changed.
-- `rag/ranking.py`: the only step on the database: the rank metrics and the relevance rules over the seed, see [EVALUATION.md](../ai/EVALUATION.md#ranking).
-- `database.py`: prepares the evaluation database of `EVAL_DATABASE_*` for a run with `rag.ranking`: creates it when missing, applies the migrations, reloads the seed when its fingerprint changed. `python -m eval.database` (`make docker-seed-test`) runs only this preparation.
+- `rag/search.py`: the only step on the database: the rank metrics and the relevance rules over the seed, see [EVALUATION.md](../ai/EVALUATION.md#ranking).
+- `database.py`: prepares the evaluation database of `EVAL_DATABASE_*` for a run with `rag.search`: creates it when missing, applies the migrations, reloads the seed when its fingerprint changed. `python -m eval.database` (`make docker-seed-test`) runs only this preparation.
 - `run.py`: `make eval`. Collects the datasets of all modules, uploads the cases, runs the experiments and prints the results table. `--local` (`make eval LOCAL=1`) runs the targets and the metrics without LangSmith.
 - `tests/`: unit tests of the cases and the metrics, no LLM and no LangSmith calls. A part of `make backend-test`.
 - `eval` is not a module: it imports only the `services` and `schemas` of the modules, and the settings of `modules/phones` and `modules/rag` for the model names in the experiment metadata.

@@ -1,4 +1,4 @@
-"""Step `rag.ranking`: the whole search on the seed, docs/ai/EVALUATION.md#ranking.
+"""Step `rag.search`: the whole search on the seed, docs/ai/EVALUATION.md#ranking.
 
 The relevant listings of a case are computed from the seed by rules, identified by `model_code`, with the grade
 2 (highly relevant) or 1 (relevant). The search runs on the evaluation database:
@@ -131,8 +131,9 @@ def hit_rate(ranked: list[str], relevant: set[str], k: int) -> float:
 
 
 def precision(ranked: list[str], relevant: set[str], k: int) -> float:
-    """Divided by `k` also when the search returns fewer than `k` results."""
-    return sum(item in relevant for item in ranked[:k]) / k
+    """Divided by `min(k, len(relevant))`: a case with fewer than `k` relevant listings can score 1.
+    Divided by it also when the search returns fewer than `k` results."""
+    return sum(item in relevant for item in ranked[:k]) / min(k, len(relevant))
 
 
 def recall(ranked: list[str], relevant: set[str], k: int) -> float:
@@ -179,9 +180,11 @@ def ndcg_at_10(outputs: Outputs, reference_outputs: Outputs) -> dict[str, Any]:
 
 
 DATASET = EvalDataset(
-    name="rag.ranking",
+    name="rag.search",
     examples=[case.example() for case in CASES],
     target=target,
     metrics=[hit_rate_at_5, precision_at_5, recall_at_20, mrr, ndcg_at_10],
     needs_database=True,
+    max_concurrency=1,
+    label="prompt to rerank",
 )

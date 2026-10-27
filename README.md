@@ -16,61 +16,9 @@ Buyers of a phone spend hours on store websites and marketplaces: they set filte
 
 See [BRIEF.md](BRIEF.md#what-is-real-and-what-is-stubbed).
 
-## Documentation as the source of truth
-
-Documentation is the basis of development: the system is designed first, the code is written after that. The approach is used for code quality, not for the test task: the agent generates code from a reviewed design, the Validator checks the code against it, and every decision has one source of truth.
-
-1. Every product decision, module, data model and API contract is described in `docs/` before implementation.
-2. The Claude agent generates code from the documentation and follows the rules in [CLAUDE.md](CLAUDE.md) and in the `CLAUDE.md` of each subsystem.
-3. Each fact is described in one document only. Other documents link to it.
-4. A change in behavior starts with a change in the documentation. Code follows the documentation.
-5. If the documentation and the code disagree, the agent does not resolve the conflict silently. It lists the discrepancies for the Engineer to fix.
-
 ## Documentation
 
-System-level documents:
-
-| Document | Content |
-| --- | --- |
-| [TASK.md](TASK.md) | Product, problem, business requirements, scope of v1.0 |
-| [BRIEF.md](BRIEF.md) | Design document: problem, harnesses, interface, architecture |
-| [INFRA.md](docs/INFRA.md) | Docker Compose, deployment, protection |
-| [TODO.md](docs/TODO.md) | Production version and architecture under growth |
-
-Backend:
-
-| Document | Content |
-| --- | --- |
-| [DESIGN.md](docs/backend/DESIGN.md) | Stack, modules, indexing, protection |
-| [STRUCTURE.md](docs/backend/STRUCTURE.md) | Folders and files of the application and its modules |
-| [SCHEMAS.md](docs/backend/SCHEMAS.md) | Data models, search index, migrations |
-| [API.md](docs/backend/API.md) | Endpoints |
-| [AUTH.md](docs/backend/AUTH.md) | Browser session without registration, access rules |
-
-AI:
-
-| Document | Content |
-| --- | --- |
-| [DESIGN.md](docs/ai/DESIGN.md) | AI stack, AI in the Backend modules |
-| [RAG.md](docs/ai/RAG.md) | Search: hybrid RAG, LLM output, model code |
-| [GUARDRAILS.md](docs/ai/GUARDRAILS.md) | Toxic content, fraud and Prompt Injection protection of listings, Prompt Injection protection of search |
-| [EVALUATION.md](docs/ai/EVALUATION.md) | Evaluation, Observability and cost of the LLM calls |
-
-Frontend:
-
-| Document | Content |
-| --- | --- |
-| [DESIGN.md](docs/frontend/DESIGN.md) | Stack, pages, rendering, UI rules |
-| [STRUCTURE.md](docs/frontend/STRUCTURE.md) | Folders and files of the application |
-| [SCHEMAS.md](docs/frontend/SCHEMAS.md) | Types, form validation, browser storage |
-
-Feature specifications:
-
-| Document | Page |
-| --- | --- |
-| [SEARCH_PAGE.md](docs/features/SEARCH_PAGE.md) | Search by prompt |
-| [MY_LISTING.md](docs/features/MY_LISTING.md) | My listings: create and delete a listing |
-| [PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md) | Phone details: SEO, Deal flow |
+Documentation is the source of truth: the system is designed in `docs/` first, the Claude agent generates the code from it. List of the documents: [DOCUMENTATION.md](docs/DOCUMENTATION.md). Development process: [CLAUDE.md](docs/ai/CLAUDE.md).
 
 ## Repository structure
 

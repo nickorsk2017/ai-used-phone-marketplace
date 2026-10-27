@@ -26,7 +26,9 @@ Otherwise return:
   - price: USD. "under 300" -> operator "<=", value 300. "from 400" -> ">=". A range "400-600" -> operator ">=", \
 value 400, max_value 600.
 - preferences: os ("ios" or "android"), camera_megapixels, battery_capacity (mAh), display_size (inches) with an \
-operator, only when the prompt asks for them or clearly implies them ("long battery life" -> battery_capacity >= 5000).
+operator, only when the prompt asks for them or clearly implies them ("long battery life" -> \
+battery_capacity >= 5000). A brand or a model sets os: iPhone -> "ios"; Samsung, Galaxy, Pixel, Xiaomi, POCO, Huawei, \
+OnePlus, Motorola, Nothing and other Android brands -> "android".
 - model_ids: up to 10 phone models that match the prompt best, as model codes of the US version \
 (for example A2483 for iPhone 13 Pro, SM-S911U for Galaxy S23). One code per model. Only real models.
 - query_for_embedding: one English sentence that describes the wanted phone, without price and condition."""

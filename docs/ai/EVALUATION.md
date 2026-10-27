@@ -9,7 +9,7 @@ v1.0 evaluates the steps where AI can fail regardless of the data volume: prompt
 | | Offline | Online |
 | --- | --- | --- |
 | What | `make eval`: the datasets of the generation steps and ranking, see [Run](#run) | Production metrics: latency and cost, errors, reranker fallbacks, clarifications, user feedback on the search |
-| Data | Test data only: the cases of the repository and the [seed](#data). Only `rag.ranking` uses a database, the evaluation database of `EVAL_DATABASE_*`: see [Evaluation database](#evaluation-database) | Production traffic |
+| Data | Test data only: the cases of the repository and the [seed](#data). Only `rag.search` uses a database, the evaluation database of `EVAL_DATABASE_*`: see [Evaluation database](#evaluation-database) | Production traffic |
 | Tool | LangSmith experiments, or the local table of `make eval LOCAL=1` | LangSmith only: the traces of the production project, see [Tracing](#tracing), and feedback on the `rag.search` trace, see [TODO.md](../TODO.md#production-baseline) |
 
 - `make eval` never runs on the working or production database, nor on the database of the tests: a run with `EVAL_DATABASE_*` pointing to the database of `POSTGRES_*` or of `TEST_DATABASE_*` stops before any change.
@@ -65,23 +65,23 @@ The cases are stored in the repository, one file per step in the folder of its m
 | `rag.clarification` | Prompt parsing: see [RAG.md](RAG.md#clarification) | Prompts without phone criteria and advice questions (clarification expected), phone descriptions and listing requests (no clarification expected) | Clarification returned when expected and only then |
 | `phones.description` | Model data generation: see [MY_LISTING.md](../features/MY_LISTING.md#description-response) | Model names of the seed with the model data of the seed listing as the expected output | Valid output, `model_code` match, `os` match, specifications close |
 | `phones.hallucinated_models` | Model data generation | Names of models that do not exist, for example `iPhone 25` | No description returned: the endpoint returns HTTP 422 |
-| `rag.ranking` | The whole search on the test database: see [Ranking](#ranking) | Search prompts with the relevant seed listings computed by rules | Hit Rate@5, Precision@5, Recall@20, MRR, NDCG@10 |
+| `rag.search` | The whole search on the test database: see [Ranking](#ranking) | Search prompts with the relevant seed listings computed by rules | Hit Rate@5, Precision@5, Recall@20, MRR, NDCG@10 |
 
 - 10 to 20 cases per dataset: see [Data](#data).
 - A field that the case does not set is not checked. A field set to `null` must be absent in the output, for example no condition filter for `iPhone 13 under $300`. A price matches when the operator, the value and the maximum value are equal.
 - Specifications are close: the camera megapixels are equal, the battery capacity differs by at most 5%, the display size differs by at most 0.1 inch.
 - Metrics are code, no LLM judge. Each metric gives a score from 0 to 1 per case (1 or 0 for the checks of the generation steps), the experiment score is the mean.
-- Targets call the public interface of `modules/rag` and `modules/phones` with the models from the configuration. Only `rag.ranking` uses the database: see [Evaluation database](#evaluation-database).
+- Targets call the public interface of `modules/rag` and `modules/phones` with the models from the configuration. Only `rag.search` uses the database: see [Evaluation database](#evaluation-database).
 - Each run is a LangSmith experiment named after the dataset, with the model names in the experiment metadata. Runs are compared in LangSmith after a prompt or model change.
 
 ## Ranking
 
-Dataset `rag.ranking`: the whole search (`rag.services.search`, see [RAG.md](RAG.md#module-interface)) on the seed, measured against the relevant seed listings of each prompt. Why rank metrics and not an LLM judge: see [Tradeoffs](#rank-metrics-instead-of-an-llm-judge).
+Dataset `rag.search`: the whole search (`rag.services.search`, see [RAG.md](RAG.md#module-interface)) on the seed, measured against the relevant seed listings of each prompt. Why rank metrics and not an LLM judge: see [Tradeoffs](#rank-metrics-instead-of-an-llm-judge).
 
 ### Evaluation database
 
 - The search runs on the evaluation database of `EVAL_DATABASE_*` (see [DESIGN.md](../backend/DESIGN.md#configuration)) with the [seed](#data) loaded into it. It is a database of its own: not the working database of `POSTGRES_*`, and not the test database of `TEST_DATABASE_*`, which `make backend-test` rolls back and truncates. So `make backend-test` and `make eval` can run at the same time, and the seed stays loaded between runs. Why: see [Tradeoffs](#evaluation-database-separate-from-the-tests).
-- Before a run that includes `rag.ranking`, `make eval` creates the database when it does not exist and applies the migrations.
+- Before a run that includes `rag.search`, `make eval` creates the database when it does not exist and applies the migrations.
 - The seed is reloaded (`seed-reset`) only when the seed fingerprint changed: a hash of the seed users and listings, the embedding model and the migration files. The fingerprint of the loaded seed is stored as the comment of the evaluation database. A database without the comment, or a comment that cannot be read or written, gets a full reload. The seed embeddings are not traced.
 
 ### Relevant listings
@@ -99,12 +99,12 @@ Grades: 2 highly relevant, 1 relevant, 0 any other listing.
 | Metric | Formula | Question |
 | --- | --- | --- |
 | Hit Rate@5 | 1 when the top 5 has a relevant listing, else 0 | Does the first screen have a match? |
-| Precision@5 | Relevant listings in the top 5 divided by 5 | How clean is the first screen? |
+| Precision@5 | Relevant listings in the top 5 divided by `min(5, relevant listings of the seed)` | How clean is the first screen? |
 | Recall@20 | Relevant listings in the results divided by all relevant listings of the seed | How many relevant listings does the search find? |
 | MRR | 1 divided by the rank of the first relevant listing, 0 when there is none | How high is the first match? |
 | NDCG@10 | DCG of the top 10 divided by the DCG of the ideal order; gain `2^grade - 1`, discount `log2(rank + 1)`; the ideal order is built from all relevant listings of the seed | How close is the order to the ideal? |
 
-- Precision@5 divides by 5 also when the search returns fewer than 5 results.
+- Precision@5 divides by `min(5, relevant)`, so a case with fewer than 5 relevant listings can score 1. It divides by the same value also when the search returns fewer than 5 results.
 - The reranker is an LLM: the scores vary slightly between runs. The trend across experiments matters, not one run.
 - The metric functions are code of the project, no library: see [Tradeoffs](#own-metric-functions-instead-of-a-library).
 
@@ -112,13 +112,14 @@ Grades: 2 highly relevant, 1 relevant, 0 any other listing.
 
 | Command | What it does | Requirements |
 | --- | --- | --- |
-| `make eval` | Runs all datasets and sends the results to LangSmith as experiments. The main command after a change of an AI step | `OPENAI_API_KEY`, `LANGSMITH_API_KEY`, PostgreSQL with pgvector for `rag.ranking` |
-| `make eval LOCAL=1` | Runs all datasets without LangSmith: no upload, no experiments, no traces. Prints the table only. For CI and for a run without a LangSmith account | `OPENAI_API_KEY`, PostgreSQL with pgvector for `rag.ranking` |
-| `make eval DATASET=rag.ranking` | Runs one dataset, for example after a change of the reranker. Combines with `LOCAL=1` | As for `make eval`; PostgreSQL only for `rag.ranking` |
+| `make eval` | Runs all datasets and sends the results to LangSmith as experiments. The main command after a change of an AI step | `OPENAI_API_KEY`, `LANGSMITH_API_KEY`, PostgreSQL with pgvector for `rag.search` |
+| `make eval LOCAL=1` | Runs all datasets without LangSmith: no upload, no experiments, no traces. Prints the table only. For CI and for a run without a LangSmith account | `OPENAI_API_KEY`, PostgreSQL with pgvector for `rag.search` |
+| `make eval DATASET=rag.search` | Runs one dataset, for example after a change of the reranker. Combines with `LOCAL=1` | As for `make eval`; PostgreSQL only for `rag.search` |
 
 - Every command prints a table: dataset, metric, score, cases, p50 and p95 latency of the target, errors, tokens and cost. Tokens and cost are `n/a` with `LOCAL=1`.
+- `rag.search` runs one search at a time, so its p50 and p95 are the latency of one search request. The other datasets run 4 targets in parallel: their latency includes the wait under the parallel load.
 - A full run makes about 100 OpenAI requests. The experiment traces are sent whatever the value of `LANGSMITH_TRACING`.
-- The first run with `rag.ranking` creates the evaluation database and loads the seed. Next runs reuse it: see [Evaluation database](#evaluation-database).
+- The first run with `rag.search` creates the evaluation database and loads the seed. Next runs reuse it: see [Evaluation database](#evaluation-database).
 - The plain tests of the [Metrics](#metrics) table are a part of `make backend-test`.
 - v1.0 (PoC): the Engineer runs `make eval` manually after a change of an AI step (prompts, models, RAG, guardrails). It is not run on every commit and is not a part of the Validator checks.
 - Production: LLM evaluation is a CI quality gate before deployment: see [TODO.md](../TODO.md#production-baseline).
@@ -150,7 +151,7 @@ To be filled after the implementation.
 ### Own metric functions instead of a library
 
 - Five short formulas on 10 to 20 cases: the speed of ranx (Numba) or pytrec_eval (C extension) gives nothing, while their build depends on the Python version and the platform.
-- The definitions of the project are visible in the code and in [Metrics](#metrics): Recall against all relevant seed listings, Precision@5 divided by 5, 0 for a case without results.
+- The definitions of the project are visible in the code and in [Metrics](#metrics): Recall against all relevant seed listings, Precision@5 divided by `min(5, relevant)`, 0 for a case without results.
 - The unit tests compare the functions with values computed by hand on edge cases: no results, no relevant listing found, relevant listings below the cut-off, fewer results than `k`.
 - Considered: ranx, ir-measures, pytrec_eval (classic IR), torchmetrics (needs PyTorch), the evaluators of LlamaIndex and Haystack (other frameworks), Ragas (ID based precision and recall only, no MRR or NDCG).
 
@@ -177,3 +178,59 @@ To be filled after the implementation.
 - The metrics are plain functions: `make eval LOCAL=1` runs them without LangSmith, and a move to another platform (for example Langfuse) changes the runner, not the metrics.
 - DeepEval and Ragas are not used: their LLM judge metrics (faithfulness, hallucination, answer relevancy) evaluate a generated answer, and the project generates no answer from the found listings. They are reconsidered if it does.
 - Offline evaluation is `make eval`. Online evaluation on real users is a part of the production baseline: see [TODO.md](../TODO.md#production-baseline).
+
+
+## Metrics and targets
+
+| Dataset | Target step | Metrics | Target |
+| --- | --- | --- | --- |
+| `rag.parse` | Prompt parsing | `valid_output`, `condition`, `price`, `os` | 100% valid JSON |
+| `rag.clarification` | Prompt parsing | `valid_output`, `clarification` | All vague prompts and advice questions answered in text, no false clarifications |
+| `rag.search` | Whole search on the evaluation database | `hit_rate@5`, `precision@5`, `recall@20`, `mrr`, `ndcg@10` | Measured, no target in v1.0 |
+| `phones.description` | Model data generation | `valid_output`, `model_code`, `os`, `specifications` | 100% valid JSON |
+| `phones.hallucinated_models` | Model data generation | `no_description` | 100% |
+
+Ranking metrics use grades 2 (highly relevant), 1 (relevant), 0 (other). Relevant listings are computed by rules over the seed, so Recall is measured without an LLM judge. Formulas: see [EVALUATION.md](EVALUATION.md#metrics-1).
+
+### Metrics Result
+
+Run of `make docker-eval` on 2026-10-27: real OpenAI calls, experiments in LangSmith.
+
+| Dataset | Metric | Score | Cases |
+| --- | --- | --- | --- |
+| `rag.parse` | valid_output | 1.00 | 15 |
+| | condition | 1.00 | 15 |
+| | price | 1.00 | 15 |
+| | os | 1.00 | 13 |
+| `rag.clarification` | valid_output | 1.00 | 16 |
+| | clarification | 1.00 | 16 |
+| `rag.search` | hit_rate@5 | 1.00 | 15 |
+| | precision@5 | 0.78 | 15 |
+| | recall@20 | 0.74 | 15 |
+| | mrr | 1.00 | 15 |
+| | ndcg@10 | 0.84 | 15 |
+| `phones.description` | valid_output | 1.00 | 15 |
+| | model_code | 0.80 | 15 |
+| | os | 0.80 | 15 |
+| | specifications | 0.80 | 15 |
+| `phones.hallucinated_models` | no_description | 1.00 | 10 |
+
+Latency, errors, tokens and cost per dataset. `rag.search` runs one request at a time: its latency is the latency of one search (guardrail, parse, retrieval, rerank). The other datasets time one LLM step and run 4 requests in parallel.
+
+| Dataset | p50 s | p95 s | Errors | Tokens | Cost $ |
+| --- | --- | --- | --- | --- | --- |
+| `rag.parse` | 3.27 | 5.00 | 0 | 17715 | 0.0034 |
+| `rag.clarification` | 2.27 | 3.92 | 0 | 18068 | 0.0024 |
+| `rag.search` | 13.22 | 15.25 | 0 | 105679 | 0.0371 |
+| `phones.description` | 3.25 | 4.47 | 0 | 9829 | 0.0054 |
+| `phones.hallucinated_models` | 1.39 | 1.87 | 0 | 2037 | 0.0006 |
+| Total | | | 0 | 153328 | 0.0489 |
+
+- Targets met: 100% valid JSON, all clarification cases, 100% hallucinated models rejected.
+- The reranker is an LLM: scores vary slightly between runs. The trend across experiments matters, not one run.
+- Search time 5 to 13 s, most of it is the rerank call.
+
+Changes after the previous run:
+
+- `os` in `rag.parse` 0.69 to 1.00: the parse prompt sets the OS from a brand or a model: see [RAG.md](RAG.md#llm-output-structure).
+- Precision@5 divides by `min(5, relevant listings)`: 6 of 15 cases have fewer than 5 relevant listings in the seed.

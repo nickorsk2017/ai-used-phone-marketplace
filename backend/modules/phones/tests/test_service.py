@@ -141,11 +141,13 @@ def test_model_code_format(model_code: str) -> None:
         PhoneCreate.model_validate({**LISTING.model_dump(), "model_code": model_code})
 
 
-async def test_regex_checks_the_model_code(ai_stubs: AiStubs) -> None:
+async def test_regex_does_not_check_the_model_code(ai_stubs: AiStubs) -> None:
+    """`model_code` is validated by the schema, the LLM Guardrail gets it as context: docs/ai/GUARDRAILS.md."""
     chat_model = StubChatModel(GuardrailVerdict(allowed=True))
-    data = LISTING.model_copy(update={"model_code": "4155552671"})
-    assert await check(ai_stubs, chat_model, data) is False
-    assert chat_model.calls == 0
+    data = PhoneCreate.model_validate({**LISTING.model_dump(), "model_code": "4155552671"})
+    assert await check(ai_stubs, chat_model, data) is True
+    assert chat_model.calls == 1
+    assert "Model code: 4155552671" in chat_model.messages[-1].content
 
 
 async def test_llm_guardrail_message_contains_the_model_code(ai_stubs: AiStubs) -> None:

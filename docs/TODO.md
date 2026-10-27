@@ -18,7 +18,7 @@ Product features out of scope for v1.0: see [TASK.md](../TASK.md#out-of-scope-fo
 | Auth | Authorization and registration | Full authorization and registration: login, logout, expiration and revocation of a session. |
 | CI | Quality gate | Unit tests, integration tests and LLM evaluation (`make eval LOCAL=1`) before deployment. |
 | AI | Online search metrics | Metrics from real users: position of the clicked result, share of searches with a Phone details view, share of searches with a Deal click, sent as LangSmith feedback on the `rag.search` trace. A larger evaluation dataset from real prompts. |
-| AI | AI model router | Comparison of several LLM models by quality, cost and latency. |
+| AI | AI model router | Experiments with models per pipeline node through an AI router (OpenRouter), compared on the `make eval` datasets by quality, latency and cost. Options: faster LLMs with `reasoning_effort=low`; a decision model for the guardrail and the reranker, for example Jev (TypeSafe AI). A model is switched only if the scores of `make eval` hold. |
 | AI | Description cache | Cache of `POST /api/phones/description` results by model. The same model name (for example, `iPhone 16`) always returns the same description and model data, without a new LLM call. |
 | AI | Model catalog | Model catalog instead of the model code from the LLM: see [RAG.md](ai/RAG.md#production-model-catalog). |
 | Backend | Update of a listing | `PATCH /api/phones/{id}`, access level `Owner`. Guardrail 1, the listing and its search index record in one transaction, as on create ([RAG.md](ai/RAG.md#indexing)). The embedding is regenerated only if the model name, description or condition note changed. Price, condition and specification changes update the copied fields only. |

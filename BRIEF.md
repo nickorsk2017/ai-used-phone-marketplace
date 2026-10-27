@@ -1,76 +1,33 @@
 # BRIEF.md
 
-This document is the design document of the submission (Deliverable 2). It is the only document required for the review.
-
-`docs/` is not a part of the design document. It is the input of the development process: the architecture and the contracts are designed in `docs/` before the code, and the Claude agent generates the code from them. The approach reduces development time and rework. `docs/` is referenced for details only.
-
 ## Product
 
 An AI marketplace of used phones. The buyer finds a phone in minutes instead of hours.
 
-## Problem Thesis
+## The Problem
 
-Problem owner: the marketplace manager, who loses paid traffic when search fails. End user: the buyer of a used phone, whose search behavior decides that conversion.
+**User.** The buyer spends hours choosing a phone model.
 
-### Business problem: the marketplace manager
+**Business.** The business loses money when the user leaves the platform without quickly finding a product.
 
-The manager pays for traffic. The search page decides if it converts. Filters do not match how buyers describe a used phone, so the buyer leaves.
+### Metrics problem
 
-- Bad search loses buyers. 80% of shoppers buy elsewhere after a failed site search. Searchers convert at 4.63% against 2.77% ([Algolia](https://www.algolia.com/blog/ecommerce/ecommerce-search-statistics/)).
-- Competitors use AI. Amazon Rufus users are 60% more likely to buy ([Fortune](https://www.fortune.com/2025/11/02/amazon-rufus-ai-shopping-assistant-chatbot-10-billion-sales-monetization)).
-- The market is thin: refurbished sales grew 3% in H1 2025 ([Counterpoint](https://www.communicationstoday.co.in/global-refurbished-smartphone-sales-up-just-3-in-h1-2025/)). Each lost buyer is paid traffic lost.
+- 80% of shoppers buy elsewhere after a failed site search [1].
+- Searchers convert at 4.63% vs 2.77% for non-searchers [1].
+- Amazon Rufus users are 60% more likely to buy [2].
+- Refurbished smartphone sales grew only 3% in H1 2025 [3].
+- Buyers use reviews, friends, brand sites and videos before choosing [4].
 
-### Buyer problem: the end user
+Limits: vendor reports describe their own products; the 80% figure is a survey answer; no public source measures time to choose a used phone.
 
-- Each used phone is unique: storage, battery health, grade, defects. The buyer describes needs ("good camera, under USD 400"), not a model code. Filters cannot express this.
-- The choice takes many sources: reviews, friends, brand sites, videos ([YouGov](https://yougov.com/articles/46465-from-reviews-to-experts-how-global-consumers-research-before-buying-a-phone)).
-- Trust is the main barrier. 32% of second-hand buyers met a scam in two years ([Which?](https://news.stv.tv/world/third-of-buyers-experienced-scam-on-second-hand-marketplaces-in-last-two-years-which-survey-finds)).
+### Links
 
-Limits of the data: vendor reports describe their own products. The 80% figure is a survey answer. No public source measures the time to choose a used phone. Details: [TASK.md](TASK.md#business-problem).
+1. [Algolia: ecommerce search statistics](https://www.algolia.com/blog/ecommerce/ecommerce-search-statistics/)
+2. [Fortune: Amazon Rufus](https://www.fortune.com/2025/11/02/amazon-rufus-ai-shopping-assistant-chatbot-10-billion-sales-monetization)
+3. [Counterpoint via Communications Today: refurbished sales H1 2025](https://www.communicationstoday.co.in/global-refurbished-smartphone-sales-up-just-3-in-h1-2025/)
+4. [YouGov: how consumers research before buying a phone](https://yougov.com/articles/46465-from-reviews-to-experts-how-global-consumers-research-before-buying-a-phone)
+5. Details: [TASK.md](TASK.md#business-problem)
 
-## Two Harnesses
-
-| Harness | Purpose | User | Location |
-| --- | --- | --- | --- |
-| RAG Harness | Product: prompt to ranked listings, listing data generation | Buyer, seller | `backend/modules/rag`, `backend/modules/phones` |
-| Claude Harness | Development: code generated and validated against `docs/` | Engineer | `.claude/` |
-
-### RAG Harness
-
-The LLM works only on free text. Price, condition, access and the WhatsApp number are deterministic code.
-
-Search, a LangGraph pipeline ([RAG.md](docs/ai/RAG.md#architecture)):
-
-1. Guardrail: LLM check for Prompt Injection, fail closed.
-2. Parse: LLM returns filters, preferences, up to 10 model codes and an embedding query. Pydantic validates, an error retries the node.
-3. Clarification: no phone criteria, a text answer, no database query.
-4. Retrieval: SQL by model codes with exact price and condition filters. Below 20 results, a pgvector fallback with the same filters. Dedup by `phone_id`.
-5. Rerank: one LLM call. Code drops unknown IDs, applies a threshold and 5 listings per model. On error, SQL order ([RERANKING.md](docs/ai/RERANKING.md)).
-
-Listing creation: the LLM generates the description and specs from the model name, an unknown model returns 422, the seller edits before publishing. Guardrail: Frontend Regex, Backend Regex, LLM check for toxic content, fraud and Prompt Injection, fail closed ([GUARDRAILS.md](docs/ai/GUARDRAILS.md)).
-
-Quality: untrusted text goes to the LLM inside delimiters. LangSmith traces each call and node. Plain tests of filters, guardrails and reranker output. Ranking metrics on the seed: Hit Rate, Precision, Recall, MRR, NDCG ([EVALUATION.md](docs/ai/EVALUATION.md)).
-
-### Claude Harness
-
-Development pipeline, not product runtime ([.claude/CLAUDE.md](.claude/CLAUDE.md)). Roles: Engineer (human: `TASK.md`, approval, commit), Planner (`PLAN.md`), Executor (code, `EXEC.md`), Validator (`VALIDATION.md`, PASS or FAIL against tests and `docs/`).
-
-- Routing: LOW skips the Planner, HIGH adds Engineer approval. FAIL returns to the Executor, a repeated FAIL goes to the Engineer.
-- Enforcement: a `PreToolUse` hook blocks foreign artifacts and illegal transitions, `pre-commit` blocks a broken task.
-- State in `STATE.yaml`, not in the chat. `.claude/tasks/DONE/` is the audit trail.
-- Downside: overhead for small changes, reduced by the LOW route.
-
-## End User and Interface
-
-- Buyer: one text field with an example prompt. No filters, no registration. A vague prompt gets one clarification question. An advice question gets a text answer ([SEARCH_PAGE.md](docs/features/SEARCH_PAGE.md)).
-- Phone details: specifications, price, condition, seller's note, "Deal" button with the WhatsApp number ([PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md)).
-- Seller: enters the model name. AI fills the description and specifications. The seller edits them, sets condition and price.
-
-Why a page with one prompt, not a chat:
-
-- Listings are compared by price and condition. A list is easier to scan than messages.
-- Each listing has a URL: indexed and shared by link.
-- To refine, the buyer edits the prompt. Clarification covers the main dialog case.
 
 ## Architecture
 
@@ -78,6 +35,61 @@ Why a page with one prompt, not a chat:
 - Frontend: Next.js, TypeScript, HeroUI v3, Tailwind CSS, React Hook Form, Zod, Zustand ([DESIGN.md](docs/frontend/DESIGN.md)).
 - AI: OpenAI through LangChain, LangGraph, pgvector hybrid RAG with reranking ([DESIGN.md](docs/ai/DESIGN.md)).
 - Database: PostgreSQL with pgvector in a Docker container. Seed of 90 listings ([INFRA.md](docs/INFRA.md)).
+
+### Harness (RAG / LLM)
+
+Principle: the LLM works only on free text. Price, condition, listing IDs, access and the WhatsApp number are deterministic code. Every LLM output is validated by Pydantic before it is used. Overview: [HARNESS.md](docs/ai/HARNESS.md).
+
+#### Search pipeline
+
+A LangGraph graph, `POST /api/search` ([RAG.md](docs/ai/RAG.md#architecture)):
+
+| Step | Node | Input | Output | On failure |
+| --- | --- | --- | --- | --- |
+| 1 | Guardrail | Prompt inside delimiters | `allowed`, `category` | Blocked: HTTP 422. Call failed: HTTP 503, fail closed |
+| 2 | Parse | Prompt | `filters` (price, condition), `preferences` (OS, camera, battery, display), up to 10 `model_ids`, `query_for_embedding` | Invalid JSON: one node retry, then HTTP 503 |
+| 3 | Clarification | Parse output | Text answer when the prompt has no phone criteria or asks for advice | Ends the graph, no database query |
+| 4 | Retrieval | `model_ids`, `filters` | SQL by exact model code with price and condition in `WHERE` | |
+| 5 | Vector fallback | `query_for_embedding`, `filters` | pgvector with the same `WHERE`, only below 20 results | |
+| 6 | Merge | Both paths | Dedup by `phone_id`, at most 40 candidates | |
+| 7 | Rerank | `preferences`, candidates inside delimiters | `relevance` 0 to 1 per `phone_id` | Fail open: SQL order, `rerank_fallback` in the trace |
+| 8 | Output check | Reranker output | Unknown and repeated IDs dropped, threshold 0.3, at most 5 listings per model, top 20 | |
+
+Retries in one place each ([RAG.md](docs/ai/RAG.md#errors-and-retries)): network errors by the model client (`max_retries=2`, timeout 60 s), validation errors by the LangGraph node (2 attempts). Reranking details: [RERANKING.md](docs/ai/RERANKING.md).
+
+#### Listing creation
+
+1. The seller enters the model name. The LLM returns the model code, OS, specifications and description. An unknown model (`iPhone 25`) returns HTTP 422 and no description ([MY_LISTING.md](docs/features/MY_LISTING.md)).
+2. The seller edits the text, sets condition and price.
+3. Guardrail 1 before saving: Frontend Regex, Backend Regex (card numbers, phone numbers, links), LLM check for toxic content, fraud and Prompt Injection. Fail closed ([GUARDRAILS.md](docs/ai/GUARDRAILS.md)).
+4. The listing and its search index record with the embedding are saved in one transaction: the index cannot get out of sync with the data.
+
+Guardrail 1 protects the search too: listing text is later passed to the reranker, so Prompt Injection in a listing is blocked before it is stored.
+
+#### Quality
+
+- Untrusted text (prompt, listings) goes to the LLM inside delimiters as data.
+- LangSmith traces each LLM call and each graph node: prompt, response, latency, tokens, cost.
+- Plain tests: filters in the results, guardrails, reranker output validation.
+- LangSmith datasets with code metrics, no LLM judge: parsing, clarification, model data generation, hallucinated models, ranking (Hit Rate, Precision, Recall, MRR, NDCG). Results: [Evaluation Results](#evaluation-results), method: [EVALUATION.md](docs/ai/EVALUATION.md).
+
+### Claude Pipeline
+
+The development process, not the product. Claude agents in the roles Planner, Executor and Validator generate the code from `docs/` and check it against them. A state machine in `STATE.yaml` routes the task by complexity, hooks enforce the write rules of each role, the Engineer approves high-risk plans and commits. Details: [CLAUDE.md](docs/ai/CLAUDE.md). Agent entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md).
+
+## End User and Interface
+
+- Buyer: one text field with an example prompt. No filters, no registration. A vague prompt gets one clarification question. An advice question gets a text answer ([SEARCH_PAGE.md](docs/features/SEARCH_PAGE.md)).
+- Phone details: specifications, price, condition, seller's note, "Deal" button with the WhatsApp number ([PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md)).
+- Waiting and errors: during the search the page shows a skeleton of the result cards. When the LLM gives no valid answer after the node retries, the buyer sees a message to repeat the request later.
+- Search time: 5 to 13 s. Most of the time is the rerank call, an estimate from the token counts of the evaluation. Tradeoff: the rerank call improves the order of the results and adds latency. Plan: show the SQL results at once and load the reranked order after them, `reasoning_effort=low` for the LLM calls ([Next steps](#reflections)).
+- Seller: enters the model name. AI fills the description and specifications. The seller edits them, sets condition and price.
+
+Why a page with one prompt, not a chat:
+
+- Listings are compared by price and condition. A list is easier to scan than messages.
+- Each listing has a URL: indexed and shared by link.
+- To refine, the buyer edits the prompt. Clarification covers the main dialog case.
 
 ## Right-Sizing
 
@@ -111,6 +123,47 @@ Stubbed or simplified on purpose:
 
 Each document in `docs/` has a Tradeoffs section with the rationale of its decisions.
 
+## Evaluation AI
+
+Run of `make docker-eval` on 2026-10-27: real OpenAI calls, experiments in LangSmith. Metrics, targets and datasets: [EVALUATION.md](docs/ai/EVALUATION.md#metrics).
+
+| Dataset | Metric | Score | Cases |
+| --- | --- | --- | --- |
+| `rag.parse` | valid_output | 1.00 | 15 |
+| | condition | 1.00 | 15 |
+| | price | 1.00 | 15 |
+| | os | 1.00 | 13 |
+| `rag.clarification` | valid_output | 1.00 | 16 |
+| | clarification | 1.00 | 16 |
+| `rag.search` | hit_rate@5 | 1.00 | 15 |
+| | precision@5 | 0.78 | 15 |
+| | recall@20 | 0.74 | 15 |
+| | mrr | 1.00 | 15 |
+| | ndcg@10 | 0.84 | 15 |
+| `phones.description` | valid_output | 1.00 | 15 |
+| | model_code | 0.80 | 15 |
+| | os | 0.80 | 15 |
+| | specifications | 0.80 | 15 |
+| `phones.hallucinated_models` | no_description | 1.00 | 10 |
+
+Latency of the target, errors, tokens and cost per dataset. The target of `rag.search` is the whole search (guardrail, parse, retrieval, rerank), run one request at a time: its latency is the search latency of one request. The other datasets time one LLM step and run 4 requests in parallel.
+
+| Dataset | p50 s | p95 s | Errors | Tokens | Cost $ |
+| --- | --- | --- | --- | --- | --- |
+| `rag.parse` | 3.27 | 5.00 | 0 | 17715 | 0.0034 |
+| `rag.clarification` | 2.27 | 3.92 | 0 | 18068 | 0.0024 |
+| `rag.search`: full search, prompt to results | 13.22 | 15.25 | 0 | 105679 | 0.0371 |
+| `phones.description` | 3.25 | 4.47 | 0 | 9829 | 0.0054 |
+| `phones.hallucinated_models` | 1.39 | 1.87 | 0 | 2037 | 0.0006 |
+| Total | | | 0 | 153328 | 0.0489 |
+
+Targets met: 100% valid JSON, all clarification cases, 100% hallucinated models rejected. Ranking has no target in v1.0. The reranker is an LLM, scores vary slightly between runs.
+
+Changes after the previous run:
+
+- `os` in `rag.parse` 0.69 to 1.00: the parse prompt sets the OS from a brand or a model ([RAG.md](docs/ai/RAG.md#llm-output-structure)).
+- Precision@5 divides by `min(5, relevant listings)`: 6 of 15 cases have fewer than 5 relevant listings in the seed and could not score 1 before ([EVALUATION.md](docs/ai/EVALUATION.md#metrics)).
+
 ## Tooling and Tradeoffs
 
 - LangGraph: branches and per-node retries match the pipeline diagram. Considered: plain async Python with hand-written branches and tracing.
@@ -121,3 +174,24 @@ Each document in `docs/` has a Tradeoffs section with the rationale of its decis
 - Next.js: server rendering and ISR for SEO of Phone details. HeroUI: ready-made components.
 - Modular monolith: fast PoC, modules can become services later ([TODO.md](docs/TODO.md)).
 
+## Reflections
+
+Time spent: 9 hours.
+
+Next steps:
+
+- Model experiments through an AI router (OpenRouter): a model per pipeline node, compared on the LangSmith evaluation datasets. Goals: lower search latency (p50 13.22 s, three sequential LLM calls), higher `model_code`, `os` and `precision@5`. Candidates: faster models with `reasoning_effort=low` for guardrail, parse and rerank; decision models such as Jev (TypeSafe AI) for the guardrail and the reranker. A switch is accepted only if the evaluation scores hold.
+- Seed of 200 to 300 listings: more cases per dataset, more stable metrics.
+- Model catalog with model ID variants: the LLM-generated model code covers one region now.
+
+Least sure:
+
+- `model_code` 0.80 in `phones.description`: one model can get several codes, so the SQL match by model code misses listings.
+- Metrics on 90 synthetic listings and 15 cases per dataset: the numbers show a trend, not the quality on real traffic.
+
+
+## ---------
+
+This document is the design document of the submission (Deliverable 2). It is the only document required for the review.
+
+`docs/` is not a part of the design document. It is the input of the development process: the architecture and the contracts are designed in `docs/` before the code, and the Claude agent generates the code from them. The approach reduces development time and rework. `docs/` is referenced for details only. List of the documents: [DOCUMENTATION.md](docs/DOCUMENTATION.md).

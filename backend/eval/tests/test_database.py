@@ -1,4 +1,4 @@
-"""Evaluation database of `rag.ranking`: docs/ai/EVALUATION.md#evaluation-database. No database connection."""
+"""Evaluation database of `rag.search`: docs/ai/EVALUATION.md#evaluation-database. No database connection."""
 
 import os
 from pathlib import Path

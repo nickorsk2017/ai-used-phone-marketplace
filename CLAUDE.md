@@ -8,7 +8,7 @@ Rules for AI coding agents working in this repository.
 - The `docs/` folder describes every module of the system:
   - `docs/`: system-level documents: product, architecture, infrastructure, roadmap.
   - `docs/backend/` and `docs/frontend/`: one folder per application. Each contains `DESIGN.md` (architecture and stack), `STRUCTURE.md` (folders and files) and `SCHEMAS.md` (data schemas). Module documents such as `AUTH.md` are placed next to them.
-  - `docs/ai/`: AI behavior across applications: RAG pipeline, LLM contracts, guardrails, evaluation. Code location is described in `docs/backend/STRUCTURE.md` and `docs/frontend/STRUCTURE.md`.
+  - `docs/ai/`: AI behavior across applications: LLM Harness, RAG pipeline, LLM contracts, guardrails, evaluation, and the Claude Harness development process. Code location is described in `docs/backend/STRUCTURE.md` and `docs/frontend/STRUCTURE.md`.
   - `docs/features/`: one specification per page.
 - Each subsystem has its own `CLAUDE.md` with rules for its architecture and code. Read it before working in that subsystem.
 - If a document has tradeoffs (rejected alternatives, limitations, pros and cons of a decision), they are placed in the `## Tradeoffs` section. The section is optional. If it exists, it is always the last section of the document, and the main text links to it.
@@ -21,7 +21,7 @@ Rules for AI coding agents working in this repository.
 
 ## 3. Claude Harness
 
-Tasks are executed with the Claude Harness: roles Engineer, Planner, Executor and Validator, a state machine and enforced write rules. Entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md). Role instructions: `.claude/skills/<Role>/SKILL.md`.
+Tasks are executed with the Claude Harness: roles Engineer, Planner, Executor and Validator, a state machine and enforced write rules. Overview: [CLAUDE.md](docs/ai/CLAUDE.md). Entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md). Role instructions: `.claude/skills/<Role>/SKILL.md`.
 
 The rules below are specific to this project and take precedence over `.claude/CLAUDE.md`.
 
