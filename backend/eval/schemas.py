@@ -30,3 +30,8 @@ class EvalDataset:
     metrics: list[Metric]
     # Runs on the evaluation database: docs/ai/EVALUATION.md#evaluation-database.
     needs_database: bool = False
+    # Parallel runs of the target. 1 when the latency of the dataset is reported as the latency of one request:
+    # docs/ai/EVALUATION.md#run.
+    max_concurrency: int = 4
+    # What the target covers, printed after the name in the results table.
+    label: str | None = None

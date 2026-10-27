@@ -24,7 +24,6 @@ The manager pays for traffic. The search page decides if it converts. Filters do
 
 - Each used phone is unique: storage, battery health, grade, defects. The buyer describes needs ("good camera, under USD 400"), not a model code. Filters cannot express this.
 - The choice takes many sources: reviews, friends, brand sites, videos ([YouGov](https://yougov.com/articles/46465-from-reviews-to-experts-how-global-consumers-research-before-buying-a-phone)).
-- Trust is the main barrier. 32% of second-hand buyers met a scam in two years ([Which?](https://news.stv.tv/world/third-of-buyers-experienced-scam-on-second-hand-marketplaces-in-last-two-years-which-survey-finds)).
 
 Limits of the data: vendor reports describe their own products. The 80% figure is a survey answer. No public source measures the time to choose a used phone. Details: [TASK.md](TASK.md#business-problem).
 
@@ -53,17 +52,14 @@ Quality: untrusted text goes to the LLM inside delimiters. LangSmith traces each
 
 ### Claude Harness
 
-Development pipeline, not product runtime ([.claude/CLAUDE.md](.claude/CLAUDE.md)). Roles: Engineer (human: `TASK.md`, approval, commit), Planner (`PLAN.md`), Executor (code, `EXEC.md`), Validator (`VALIDATION.md`, PASS or FAIL against tests and `docs/`).
-
-- Routing: LOW skips the Planner, HIGH adds Engineer approval. FAIL returns to the Executor, a repeated FAIL goes to the Engineer.
-- Enforcement: a `PreToolUse` hook blocks foreign artifacts and illegal transitions, `pre-commit` blocks a broken task.
-- State in `STATE.yaml`, not in the chat. `.claude/tasks/DONE/` is the audit trail.
-- Downside: overhead for small changes, reduced by the LOW route.
+The development process, not the product. Claude agents in the roles Planner, Executor and Validator generate and check the code against the specifications in `docs/`. The Engineer approves the task and commits. Details: [.claude/CLAUDE.md](.claude/CLAUDE.md).
 
 ## End User and Interface
 
 - Buyer: one text field with an example prompt. No filters, no registration. A vague prompt gets one clarification question. An advice question gets a text answer ([SEARCH_PAGE.md](docs/features/SEARCH_PAGE.md)).
 - Phone details: specifications, price, condition, seller's note, "Deal" button with the WhatsApp number ([PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md)).
+- Waiting and errors: during the search the page shows a skeleton of the result cards. When the LLM gives no valid answer after the node retries, the buyer sees a message to repeat the request later.
+- Search time: 5 to 13 s. Most of the time is the rerank call, an estimate from the token counts of the evaluation. Tradeoff: the rerank call improves the order of the results and adds latency. Plan: show the SQL results at once and load the reranked order after them, `reasoning_effort=low` for the LLM calls ([Next steps](#reflections)).
 - Seller: enters the model name. AI fills the description and specifications. The seller edits them, sets condition and price.
 
 Why a page with one prompt, not a chat:
@@ -111,6 +107,47 @@ Stubbed or simplified on purpose:
 
 Each document in `docs/` has a Tradeoffs section with the rationale of its decisions.
 
+## Evaluation Results
+
+Run of `make docker-eval` on 2026-10-27: real OpenAI calls, experiments in LangSmith. Metrics, targets and datasets: [EVALUATION.md](docs/ai/EVALUATION.md#metrics).
+
+| Dataset | Metric | Score | Cases |
+| --- | --- | --- | --- |
+| `rag.parse` | valid_output | 1.00 | 15 |
+| | condition | 1.00 | 15 |
+| | price | 1.00 | 15 |
+| | os | 1.00 | 13 |
+| `rag.clarification` | valid_output | 1.00 | 16 |
+| | clarification | 1.00 | 16 |
+| `rag.search` | hit_rate@5 | 1.00 | 15 |
+| | precision@5 | 0.78 | 15 |
+| | recall@20 | 0.74 | 15 |
+| | mrr | 1.00 | 15 |
+| | ndcg@10 | 0.84 | 15 |
+| `phones.description` | valid_output | 1.00 | 15 |
+| | model_code | 0.80 | 15 |
+| | os | 0.80 | 15 |
+| | specifications | 0.80 | 15 |
+| `phones.hallucinated_models` | no_description | 1.00 | 10 |
+
+Latency of the target, errors, tokens and cost per dataset. The target of `rag.search` is the whole search (guardrail, parse, retrieval, rerank), run one request at a time: its latency is the search latency of one request. The other datasets time one LLM step and run 4 requests in parallel.
+
+| Dataset | p50 s | p95 s | Errors | Tokens | Cost $ |
+| --- | --- | --- | --- | --- | --- |
+| `rag.parse` | 3.27 | 5.00 | 0 | 17715 | 0.0034 |
+| `rag.clarification` | 2.27 | 3.92 | 0 | 18068 | 0.0024 |
+| `rag.search`: full search, prompt to results | 13.22 | 15.25 | 0 | 105679 | 0.0371 |
+| `phones.description` | 3.25 | 4.47 | 0 | 9829 | 0.0054 |
+| `phones.hallucinated_models` | 1.39 | 1.87 | 0 | 2037 | 0.0006 |
+| Total | | | 0 | 153328 | 0.0489 |
+
+Targets met: 100% valid JSON, all clarification cases, 100% hallucinated models rejected. Ranking has no target in v1.0. The reranker is an LLM, scores vary slightly between runs.
+
+Changes after the previous run:
+
+- `os` in `rag.parse` 0.69 to 1.00: the parse prompt sets the OS from a brand or a model ([RAG.md](docs/ai/RAG.md#llm-output-structure)).
+- Precision@5 divides by `min(5, relevant listings)`: 6 of 15 cases have fewer than 5 relevant listings in the seed and could not score 1 before ([EVALUATION.md](docs/ai/EVALUATION.md#metrics)).
+
 ## Tooling and Tradeoffs
 
 - LangGraph: branches and per-node retries match the pipeline diagram. Considered: plain async Python with hand-written branches and tracing.
@@ -121,3 +158,18 @@ Each document in `docs/` has a Tradeoffs section with the rationale of its decis
 - Next.js: server rendering and ISR for SEO of Phone details. HeroUI: ready-made components.
 - Modular monolith: fast PoC, modules can become services later ([TODO.md](docs/TODO.md)).
 
+## Reflections
+
+Time spent: 9 hours.
+
+Next steps:
+
+- Model selection through OpenRouter: experiments with different models per pipeline node, compared on the evaluation datasets in LangSmith. Goal: higher scores of `model_code`, `os` and `precision@5`.
+- Latency: `reasoning_effort=low` for the guardrail, parse and rerank calls, and a faster model for the reranker and the parse node, selected by the same experiments. Search p50 is 13.22 s on the `rag.search` cases: the search makes up to three sequential LLM calls (guardrail, parse, rerank) and an embedding call.
+- Seed of 200 to 300 listings: more cases and more relevant listings per case, more stable metrics.
+- Catalog of models with the variants of the model IDs. The model code is generated by the LLM now and covers one region.
+
+Least sure:
+
+- `model_code` 0.80 in `phones.description`: one model can get several codes, so the SQL match by model code misses listings.
+- Metrics on 90 synthetic listings and 15 cases per dataset: the numbers show a trend, not the quality on real traffic.

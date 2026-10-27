@@ -1,4 +1,4 @@
-"""Step `rag.ranking`: metric values computed by hand and the case rules, docs/ai/EVALUATION.md#ranking."""
+"""Step `rag.search`: metric values computed by hand and the case rules, docs/ai/EVALUATION.md#ranking."""
 
 import math
 
@@ -6,7 +6,7 @@ import pytest
 
 import conftest  # noqa: F401  # test environment: no traces, stub keys
 from eval.rag import ranking
-from eval.rag.ranking import CASES, DATASET, hit_rate, ndcg, precision, recall, reciprocal_rank
+from eval.rag.search import CASES, DATASET, hit_rate, ndcg, precision, recall, reciprocal_rank
 from eval.schemas import DATASET_MAX_CASES, DATASET_MIN_CASES
 from seed.run import LISTINGS
 
@@ -18,7 +18,7 @@ RANKED = ["A", "X", "C", "Y", "Z", "B", *[f"N{index}" for index in range(14)]]
 
 def test_documented_example() -> None:
     assert hit_rate(RANKED, RELEVANT, 5) == 1
-    assert precision(RANKED, RELEVANT, 5) == pytest.approx(0.4)
+    assert precision(RANKED, RELEVANT, 5) == pytest.approx(0.5)
     assert recall(RANKED, RELEVANT, 20) == pytest.approx(0.75)
     assert reciprocal_rank(RANKED, RELEVANT) == 1
     dcg = 3 + 1 / math.log2(4) + 3 / math.log2(7)
@@ -51,7 +51,8 @@ def test_relevant_listings_below_the_cut_off() -> None:
 
 
 def test_fewer_results_than_k() -> None:
-    assert precision(["A", "B"], RELEVANT, 5) == pytest.approx(0.4)
+    assert precision(["A", "B"], RELEVANT, 5) == pytest.approx(0.5)
+    assert precision(["A", "B"], {"A", "B"}, 5) == pytest.approx(1)
     assert recall(["A", "B"], RELEVANT, 20) == pytest.approx(0.5)
 
 
@@ -64,13 +65,17 @@ def test_metric_wrappers_use_the_grades_and_the_cut_offs() -> None:
     outputs, reference = {"ranked": RANKED}, {"grades": GRADES}
     scores = {metric(outputs, reference)["key"]: metric(outputs, reference)["score"] for metric in DATASET.metrics}
     assert list(scores) == ["hit_rate@5", "precision@5", "recall@20", "mrr", "ndcg@10"]
-    assert scores["precision@5"] == pytest.approx(0.4)
+    assert scores["precision@5"] == pytest.approx(0.5)
     assert scores["recall@20"] == pytest.approx(0.75)
 
 
 def test_clarification_or_blocked_prompt_scores_0() -> None:
     for outputs in ({"ranked": [], "clarification": "Budget?"}, {"ranked": [], "error": "PromptBlocked"}):
         assert all(metric(outputs, {"grades": GRADES})["score"] == 0 for metric in DATASET.metrics)
+
+
+def test_ranking_runs_one_request_at_a_time() -> None:
+    assert DATASET.max_concurrency == 1
 
 
 def test_case_count() -> None:

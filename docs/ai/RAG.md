@@ -40,6 +40,7 @@ Fields under `filters` are present only if the user set them in the prompt.
 
 - A price range (`400-600`) is `operator` `>=` with `value` 400 and `max_value` 600. `max_value` is present only for a range.
 - `model_ids`: at most 10 codes, converted to uppercase, repeats removed.
+- `preferences.os` is set when the prompt names the OS, a brand or a model: iPhone is `ios`, Samsung, Pixel, Xiaomi and the other Android brands are `android`. The reranker uses it as a preference.
 
 ```json
 {

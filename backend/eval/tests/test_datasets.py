@@ -13,7 +13,7 @@ def test_the_documented_datasets_exist() -> None:
     assert list(DATASETS) == [
         "rag.parse",
         "rag.clarification",
-        "rag.ranking",
+        "rag.search",
         "phones.description",
         "phones.hallucinated_models",
     ]

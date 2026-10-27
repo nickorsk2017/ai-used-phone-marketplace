@@ -1,4 +1,4 @@
-"""Evaluation database of `rag.ranking`: docs/ai/EVALUATION.md#evaluation-database.
+"""Evaluation database of `rag.search`: docs/ai/EVALUATION.md#evaluation-database.
 
 Run from `backend/` to prepare it without the evaluation: `python -m eval.database` (`make docker-seed-test`).
 

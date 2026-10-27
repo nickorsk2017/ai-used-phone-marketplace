@@ -8,7 +8,7 @@ from eval.metrics import valid_output
 from eval.run import DatasetReport, apply_metric, parse_args, percentile, run_local, table
 from eval.schemas import EvalDataset, Example
 
-ALL = ["rag.parse", "rag.clarification", "rag.ranking", "phones.description", "phones.hallucinated_models"]
+ALL = ["rag.parse", "rag.clarification", "rag.search", "phones.description", "phones.hallucinated_models"]
 
 
 def test_percentiles() -> None:
@@ -21,8 +21,8 @@ def test_percentiles() -> None:
 
 def test_table_has_one_row_per_metric_with_the_mean() -> None:
     report = DatasetReport(
-        dataset="rag.ranking",
-        experiment="rag.ranking-1",
+        dataset="rag.search",
+        experiment="rag.search-1",
         scores={"valid_output": [1, 1, 1, 0], "ndcg@10": [0.78, 0.5]},
         latencies=[1.0, 2.0],
         tokens=1200,
@@ -30,8 +30,8 @@ def test_table_has_one_row_per_metric_with_the_mean() -> None:
     )
     lines = table([report]).splitlines()
     assert lines[0].split()[:4] == ["Dataset", "Metric", "Score", "Cases"]
-    assert lines[1].split()[:4] == ["rag.ranking", "valid_output", "0.75", "4"]
-    assert lines[2].split()[:4] == ["rag.ranking", "ndcg@10", "0.64", "2"]
+    assert lines[1].split()[:4] == ["rag.search", "valid_output", "0.75", "4"]
+    assert lines[2].split()[:4] == ["rag.search", "ndcg@10", "0.64", "2"]
     assert lines[1].split()[-2:] == ["1200", "0.0123"]
 
 
@@ -48,7 +48,7 @@ def test_arguments() -> None:
 
 
 def test_only_ranking_needs_the_database() -> None:
-    assert [name for name, dataset in run.DATASETS.items() if dataset.needs_database] == ["rag.ranking"]
+    assert [name for name, dataset in run.DATASETS.items() if dataset.needs_database] == ["rag.search"]
 
 
 def test_metric_gets_the_arguments_it_declares() -> None:
