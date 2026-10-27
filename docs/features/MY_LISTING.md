@@ -42,7 +42,7 @@ Rate limits of `POST /api/phones/description` and `POST /api/phones`: see [INFRA
 }
 ```
 
-- `description`, `camera_megapixels`, `battery_capacity` and `display_size` are shown in editable fields. The edited values are saved with the listing. The specifications are validated as positive numbers (Zod on the Frontend, Pydantic on the Backend).
+- `description`, `camera_megapixels`, `battery_capacity` and `display_size` are shown in editable fields. The edited values are saved with the listing. The specifications are validated as positive numbers (Zod on the Frontend, Pydantic on the Backend). The description and the condition note are limited to 1000 characters by the same rule: see [SCHEMAS.md](../backend/SCHEMAS.md#phones-modulesphones).
 - `model_name` and `os` are shown read-only and are saved as returned.
 - `model_code` is not shown in the UI and is saved as returned. It links the listing to the search: see [Tradeoffs](#hidden-model-code).
 - The LLM output has the field `model_found`. If the LLM does not find the model (`model_found: false`), the endpoint returns HTTP 422 and no description. The Frontend shows the error `Model not found. Check that the model really exists.` next to the model name field, and the user can correct the name and try again.
@@ -50,6 +50,9 @@ Rate limits of `POST /api/phones/description` and `POST /api/phones`: see [INFRA
 ## Delete Phone Flow
 
 When a phone is deleted, the listing record and its search index record are deleted in one PostgreSQL transaction.
+
+- The Frontend calls `DELETE /api/phones/{id}`. Access level `Owner`: see [AUTH.md](../backend/AUTH.md#access).
+- 204: the listing is deleted and removed from the My listings page. 401, 403, 404: the listing is not deleted, the dialog shows the error.
 
 ## Tradeoffs
 

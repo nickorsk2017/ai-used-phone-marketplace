@@ -1,4 +1,4 @@
-"""Shared test fixtures. Tests run against PostgreSQL: `TEST_DATABASE_URL`."""
+"""Shared test fixtures. Tests run against PostgreSQL: `TEST_DATABASE_*`."""
 
 import os
 import subprocess

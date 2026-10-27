@@ -7,6 +7,7 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import ColumnElement, Select, insert, select
+from sqlalchemy import delete as delete_statement
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.rag.models import SearchIndex
@@ -28,6 +29,11 @@ _OPERATORS = {
 async def index(session: AsyncSession, phone: IndexedPhone, embedding: list[float]) -> None:
     """Creates the search index record of a new listing, in the transaction of the listing."""
     await session.execute(insert(SearchIndex).values(**phone.model_dump(), embedding=embedding))
+
+
+async def delete(session: AsyncSession, phone_id: uuid.UUID) -> None:
+    """Deletes the search index record of a listing, in the transaction of the listing."""
+    await session.execute(delete_statement(SearchIndex).where(SearchIndex.phone_id == phone_id))
 
 
 def filter_conditions(filters: Filters) -> list[ColumnElement[bool]]:

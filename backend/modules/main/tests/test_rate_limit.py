@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI
 from conftest import AiStubs, StubChatModel
 from modules.main.app import create_app
 from modules.main.rate_limit import RateLimit
+from modules.main.tests.test_phone_details import create_listing
 from modules.main.tests.test_phones import ALLOWED, LISTING, USER
 from modules.phones.schemas import GeneratedDescription
 
@@ -105,3 +106,14 @@ async def test_my_listings_allows_the_page_load_and_the_reload_after_publish(ai_
         for _ in range(4):
             assert (await client.get("/api/my-listings")).status_code == 200
         assert (await client.get("/api/my-listings")).status_code == 429
+
+
+async def test_contact_is_limited_to_five_requests_per_minute() -> None:
+    phone_id = await create_listing()
+    async with client_from("10.0.0.1") as client:
+        for _ in range(5):
+            assert (await client.get(f"/api/phones/{phone_id}/contact")).status_code == 200
+        response = await client.get(f"/api/phones/{phone_id}/contact")
+        assert (await client.get(f"/api/phones/{phone_id}")).status_code == 200
+    assert response.status_code == 429
+    assert 1 <= int(response.headers["retry-after"]) <= 60

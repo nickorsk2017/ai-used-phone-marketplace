@@ -1,6 +1,6 @@
 # GUARDRAILS.md
 
-Protection of user input: toxic content, fraud and Prompt Injection. Antifraud requirement: see [TASK.md](../TASK.md#business-requirements).
+Protection of user input: toxic content, fraud and Prompt Injection. Antifraud requirement: see [TASK.md](../../TASK.md#business-requirements).
 
 | Guardrail | Where | Blocks |
 | --- | --- | --- |

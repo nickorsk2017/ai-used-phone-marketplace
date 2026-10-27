@@ -1,9 +1,12 @@
 """Evaluation database of `rag.ranking`: docs/ai/EVALUATION.md#evaluation-database.
 
-A database of its own (`EVAL_DATABASE_URL`): not the working database of `DATABASE_URL` and not the test database
-of `TEST_DATABASE_URL`. The seed is reloaded only when its fingerprint changed.
+Run from `backend/` to prepare it without the evaluation: `python -m eval.database` (`make docker-seed-test`).
+
+A database of its own (`EVAL_DATABASE_*`): not the working database of `POSTGRES_*` and not the test database
+of `TEST_DATABASE_*`. The seed is reloaded only when its fingerprint changed.
 """
 
+import asyncio
 import hashlib
 import json
 import os
@@ -19,7 +22,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import make_url
 
 from core.config import eval_database_url, get_settings, test_database_url, to_async_url
-from core.database import transaction
+from core.database import get_engine, transaction
 from modules.rag.config import get_settings as get_rag_settings
 from seed.run import LISTINGS
 from seed.run import main as load_seed
@@ -34,7 +37,7 @@ FINGERPRINT_PATTERN = re.compile(r"^seed:[0-9a-f]{64}$")
 
 
 class WorkingDatabaseError(RuntimeError):
-    """`EVAL_DATABASE_URL` points to the working database or to the test database."""
+    """`EVAL_DATABASE_*` points to the working database or to the test database."""
 
 
 # Guard
@@ -51,11 +54,11 @@ def _working_database_url() -> str | None:
 def use_eval_database() -> str:
     """Point `DATABASE_URL` of this process to the evaluation database, before the first engine is created."""
     url = eval_database_url()
-    clashes = {"DATABASE_URL": _working_database_url(), "TEST_DATABASE_URL": to_async_url(test_database_url())}
+    clashes = {"POSTGRES_*": _working_database_url(), "TEST_DATABASE_*": to_async_url(test_database_url())}
     for variable, other in clashes.items():
         if other is not None and to_async_url(url) == other:
             raise WorkingDatabaseError(
-                f"EVAL_DATABASE_URL is the database of {variable}: the seed reload would change it"
+                f"EVAL_DATABASE_* is the database of {variable}: the seed reload would change it"
             )
     os.environ["DATABASE_URL"] = url
     get_settings.cache_clear()
@@ -144,3 +147,14 @@ async def prepare_eval_database() -> None:
         await write_fingerprint(expected)
     except Exception as error:
         print(f"Could not store the seed fingerprint ({type(error).__name__}): the next run reloads the seed.")
+
+
+async def main() -> None:
+    try:
+        await prepare_eval_database()
+    finally:
+        await get_engine().dispose()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

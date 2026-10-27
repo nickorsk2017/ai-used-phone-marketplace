@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listingFormSchema, userFormSchema } from "@/schemas/myListingsFormSchemas";
+import { LISTING_TEXT_MAX_LENGTH, listingFormSchema, userFormSchema } from "@/schemas/myListingsFormSchemas";
 
 const validListing = {
   description: "iPhone 13 Pro with a 6.1-inch display.",
@@ -28,6 +28,12 @@ describe("userFormSchema", () => {
 });
 
 describe("listingFormSchema", () => {
+  it.each(["description", "condition_note"])("limits %s to 1000 characters", (field) => {
+    expect(listingFormSchema.safeParse({ ...validListing, [field]: "a".repeat(LISTING_TEXT_MAX_LENGTH) }).success).toBe(true);
+    const result = listingFormSchema.safeParse({ ...validListing, [field]: "a".repeat(LISTING_TEXT_MAX_LENGTH + 1) });
+    expect(result.error?.issues.map((issue) => issue.message)).toContain("Use at most 1000 characters.");
+  });
+
   it("accepts a valid listing and an empty condition note", () => {
     expect(listingFormSchema.parse({ ...validListing, condition_note: "" }).condition_note).toBe("");
   });

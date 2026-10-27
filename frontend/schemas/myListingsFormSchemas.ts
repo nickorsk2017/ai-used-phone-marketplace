@@ -22,9 +22,13 @@ export const modelNameSchema = z.object({
 
 export type ModelNameValues = z.infer<typeof modelNameSchema>;
 
+/** `description` and `condition_note`: docs/backend/SCHEMAS.md#phones-modulesphones. */
+export const LISTING_TEXT_MAX_LENGTH = 1000;
+
 const listingText = z
   .string()
   .trim()
+  .max(LISTING_TEXT_MAX_LENGTH, `Use at most ${LISTING_TEXT_MAX_LENGTH} characters.`)
   .refine((value) => !hasGuardrailViolations(value), "Remove card numbers, phone numbers and links. Buyers see your WhatsApp number separately.");
 
 const positiveInteger = z

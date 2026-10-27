@@ -84,10 +84,10 @@ The page includes JSON-LD of type `Product` with an `Offer` (`price`, `priceCurr
 
 ### No sitemap in v1.0
 
-A sitemap is not needed in v1.0 (PoC). The PoC is a short demo, search engines are not expected to index it. Sitemap: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+A sitemap is not needed in v1.0 (PoC). The PoC is a short demo, search engines are not expected to index it. Sitemap: see [TODO.md](../TODO.md#production-baseline).
 
 ### Time-based revalidation only
 
 v1.0 uses time-based revalidation only (`revalidate = 60`, see [Rendering](#rendering)). There is no on-demand revalidation. After a listing is updated or deleted, the page shows the previous version for up to 60 seconds.
 
-On-demand revalidation: see [ROADMAP.md](../ROADMAP.md#high-load).
+On-demand revalidation: see [TODO.md](../TODO.md#high-load).

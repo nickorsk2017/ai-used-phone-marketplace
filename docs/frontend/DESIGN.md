@@ -21,7 +21,7 @@ Folders and files: [STRUCTURE.md](STRUCTURE.md). Types, form validation and brow
 | `/my-listings` | My listings | Client Component | `noindex` | [MY_LISTING.md](../features/MY_LISTING.md) |
 | `/phones/[id]` | Phone details | Server Component, ISR | indexed | [PHONE_DETAILS.md](../features/PHONE_DETAILS.md) |
 
-Page requirements: see [TASK.md](../TASK.md#business-requirements).
+Page requirements: see [TASK.md](../../TASK.md#business-requirements).
 
 ## Rendering
 
@@ -50,7 +50,7 @@ Page requirements: see [TASK.md](../TASK.md#business-requirements).
 
 ### HeroUI
 
-[TASK.md](../TASK.md#out-of-scope-for-v10) requires ready-made UI components instead of custom ones. HeroUI is the chosen library.
+[TASK.md](../../TASK.md#out-of-scope-for-v10) requires ready-made UI components instead of custom ones. HeroUI is the chosen library.
 
 ### i18n
 

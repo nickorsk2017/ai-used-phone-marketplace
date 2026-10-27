@@ -1,6 +1,6 @@
 # RAG
 
-The search module `modules/rag`. It is used by the Search page ([SEARCH_PAGE.md](../features/SEARCH_PAGE.md)) and by listing create, update and delete ([MY_LISTING.md](../features/MY_LISTING.md)).
+The search module `modules/rag`. It is used by the Search page ([SEARCH_PAGE.md](../features/SEARCH_PAGE.md)) and by listing create and delete ([MY_LISTING.md](../features/MY_LISTING.md)).
 
 ## Architecture
 
@@ -100,12 +100,12 @@ The model code is the key that links a listing to the search. The phone name may
 ### v1.0 (PoC)
 
 - When the listing description is generated, OpenAI also returns the model code: see [MY_LISTING.md](../features/MY_LISTING.md#add-phone-flow).
-- Only one code is used: the US version of the model (the market is the US only, see [TASK.md](../TASK.md#product)). For example, iPhone 13 Pro: `A2483`.
+- Only one code is used: the US version of the model (the market is the US only, see [TASK.md](../../TASK.md#product)). For example, iPhone 13 Pro: `A2483`.
 - In search, the LLM returns model codes by the same rule, and listings are found by exact match of the code.
 
 ## Storage
 
-Search is a separate layer owned by `modules/rag`. In v1.0 the index is stored in PostgreSQL (Supabase) with the pgvector extension. Why pgvector: see [Tradeoffs](#pgvector-vs-a-dedicated-search-engine).
+Search is a separate layer owned by `modules/rag`. In v1.0 the index is stored in PostgreSQL with the pgvector extension. Why pgvector: see [Tradeoffs](#pgvector-vs-a-dedicated-search-engine).
 
 ### Search index table
 
@@ -115,8 +115,8 @@ The `search_index` table is the read model for search: see [SCHEMAS.md](../backe
 
 ### Indexing
 
-- Create, update and delete of a listing change `phones` and `search_index` in one transaction. The index cannot get out of sync with the data.
-- On update, the embedding is regenerated only if the model name, description or condition note changed. Price, condition and specification changes update the copied fields only.
+- Create and delete of a listing change `phones` and `search_index` in one transaction. The index cannot get out of sync with the data.
+- Update of a listing is planned, not implemented in v1.0: see [TODO.md](../TODO.md#production-baseline).
 - The embedding is generated synchronously in the request, there is no background task.
 - The embedding input: `model_name`, `description` and `condition_note`, joined by new lines.
 
@@ -127,14 +127,14 @@ Other modules use search only through the `modules/rag` interface. The storage b
 - `embed_listing(model_name, description, condition_note)`: the embedding of the listing text. A slow network call, made before the transaction of the listing.
 - `index(session, phone, embedding)`: creates the search index record. `session` is the transaction of the listing: [Indexing](#indexing). `phone` holds the copied listing fields. `embedding` is the result of `embed_listing`, so a retried transaction does not call the embeddings API again: see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
 - `search(session, prompt)`: runs the pipeline of [Architecture](#architecture) and returns `SearchResult`: the ranked listing IDs, at most 20, or the [clarification](#clarification) text. Raises `PromptBlocked` when Guardrail 2 blocks the prompt. Response of the endpoint: see [API.md](../backend/API.md#search).
-- `delete(phone_id)`.
+- `delete(session, phone_id)`: deletes the search index record of a listing. `session` is the transaction of the listing: [Indexing](#indexing).
 - `parse_prompt(prompt)`: the [LLM call](#llm-output-structure) of the pipeline alone, with the same model, prompt and validation retry. Returns `ParsedPrompt`, without Guardrail 2 and without the database. Used by the evaluation only: see [EVALUATION.md](EVALUATION.md#datasets).
 
 ## Errors and Retries
 
 Each kind of error is retried in one place only: see [Tradeoffs](#retries-in-one-place).
 
-1. Network and provider errors of the LLM and embeddings API (timeout, HTTP 429, HTTP 5xx): the built-in retry of the LangChain model client, `max_retries=2` with exponential backoff.
+1. Network and provider errors of the LLM and embeddings API (timeout, HTTP 429, HTTP 5xx): the built-in retry of the LangChain model client, `max_retries=2` with exponential backoff. Each attempt has a timeout of 60 seconds, so a hung provider does not hold the request for the default 600 seconds of the OpenAI client.
 2. The LLM response fails Pydantic validation: one repeated call of the LLM node (LangGraph `RetryPolicy`, 2 attempts in total). The node policy retries validation errors only. The LLM calls of `modules/phones` (description generation, Guardrail 1) repeat the call once by the same rule, without LangGraph.
 3. Transient database errors of the listing and search index transaction: one repeated transaction, see [DESIGN.md](../backend/DESIGN.md#transaction-retry).
 
@@ -194,7 +194,7 @@ A model catalog replaces the model code from the LLM.
 - One transaction for the listing and its index: no consistency problem between two stores, no reindex job.
 - The v1.0 volume (thousands of listings) is well within pgvector capacity.
 
-A dedicated search engine (Pinecone, Elasticsearch) was considered and postponed. Its advantages (isolation of search load, very large volumes) are not needed in v1.0. Migration does not change code outside `modules/rag`: see [ROADMAP.md](../ROADMAP.md#high-load).
+A dedicated search engine (Pinecone, Elasticsearch) was considered and postponed. Its advantages (isolation of search load, very large volumes) are not needed in v1.0. Migration does not change code outside `modules/rag`: see [TODO.md](../TODO.md#high-load).
 
 ### Retries in one place
 

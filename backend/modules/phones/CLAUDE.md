@@ -33,4 +33,4 @@ Rules for AI coding agents working in `backend/modules/phones/`. Project rules: 
 
 ## Tests
 
-- `tests/` runs against PostgreSQL from `TEST_DATABASE_URL`. LLM clients are the stubs of `backend/conftest.py`, no real OpenAI calls.
+- `tests/` runs against PostgreSQL from `TEST_DATABASE_*`. LLM clients are the stubs of `backend/conftest.py`, no real OpenAI calls.

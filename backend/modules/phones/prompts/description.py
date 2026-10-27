@@ -13,7 +13,8 @@ If the name matches a real phone model released before today, set model_found to
 - camera_megapixels: main camera resolution, integer.
 - battery_capacity: battery capacity in mAh, integer.
 - display_size: display size in inches.
-- description: 1 to 3 factual sentences about the model in English, no marketing claims, no prices.
+- description: 1 to 3 factual sentences about the model in English, at most 1000 characters, no marketing claims, \
+no prices.
 
 If the model does not exist or the text is not a phone model, set model_found to false and leave the other \
 fields empty. Never invent a model."""

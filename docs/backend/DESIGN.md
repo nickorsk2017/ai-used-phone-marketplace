@@ -7,7 +7,7 @@ Folders and files: [STRUCTURE.md](STRUCTURE.md). Data models and migrations: [SC
 - Python, FastAPI.
 - Pydantic for data schema validation.
 - SQLAlchemy and Alembic.
-- PostgreSQL (Supabase).
+- PostgreSQL with pgvector in a Docker container: see [INFRA.md](../INFRA.md#docker-compose).
 - AI stack (LLM, LangChain, LangGraph, pgvector, evaluation): see [ai/DESIGN.md](../ai/DESIGN.md#stack).
 
 ## Modules
@@ -31,9 +31,9 @@ Each module can be moved to a separate microservice later, the `main` module can
 ## Configuration
 
 - Each module reads its settings from environment variables and `backend/.env` (template: `backend/.env.example`). The path to `backend/.env` is resolved from the settings file (`core/config.py` and the `config.py` of each module), so the settings do not depend on the current directory. Environment variables take precedence over `backend/.env`. Secrets: see [INFRA.md](../INFRA.md).
-- Tests: `TEST_DATABASE_URL` (environment only, default `postgresql://postgres@localhost:5432/app_test`), the test database, never the database of `DATABASE_URL`.
-- `make eval`: `EVAL_DATABASE_URL` (environment only, default `postgresql://postgres@localhost:5432/app_eval`), the evaluation database, never the database of `DATABASE_URL` or of `TEST_DATABASE_URL`: see [EVALUATION.md](../ai/EVALUATION.md#evaluation-database).
-- `core`: `DATABASE_URL` (required). LangSmith: `LANGSMITH_TRACING` (optional, default `false`), `LANGSMITH_API_KEY` (required when `LANGSMITH_TRACING=true` and for `make eval`), `LANGSMITH_PROJECT` (optional, default `second-hand-mobile-e-market`), `LANGSMITH_ENDPOINT` (optional, the LangSmith default when empty, for example the EU region). `core` exports them to the process environment on startup, before the first LLM client is created, because LangChain reads them from the environment only: see [EVALUATION.md](../ai/EVALUATION.md#tracing).
+- Tests: `TEST_DATABASE_USER` (default `postgres`), `TEST_DATABASE_PASSWORD` (default empty), `TEST_DATABASE_DB` (default `app_test`), on the server of `POSTGRES_HOST` and `POSTGRES_PORT`. The test database, never the working database: the tests truncate it. It is created by the Engineer before the first `make backend-test`.
+- `make eval`: `EVAL_DATABASE_USER` (default `postgres`), `EVAL_DATABASE_PASSWORD` (default empty), `EVAL_DATABASE_DB` (default `app_eval`), on the server of `POSTGRES_HOST` and `POSTGRES_PORT`. The evaluation database, never the working database or the test database: see [EVALUATION.md](../ai/EVALUATION.md#evaluation-database). The user needs the right to create a database.
+- `core`: the working database, `POSTGRES_USER` (default `postgres`), `POSTGRES_PASSWORD` (default empty), `POSTGRES_DB` (default `app`), `POSTGRES_HOST` (default `localhost`), `POSTGRES_PORT` (default `5432`). `core/config.py` builds the connection URL from them and escapes the user and the password. `DATABASE_URL` in the process environment replaces them: the tests and `make eval` switch the process to their database this way. It is not set in `backend/.env`. LangSmith: `LANGSMITH_TRACING` (optional, default `false`), `LANGSMITH_API_KEY` (required when `LANGSMITH_TRACING=true` and for `make eval`), `LANGSMITH_PROJECT` (optional, default `second-hand-mobile-e-market`), `LANGSMITH_ENDPOINT` (optional, the LangSmith default when empty, for example the EU region). `core` exports them to the process environment on startup, before the first LLM client is created, because LangChain reads them from the environment only: see [EVALUATION.md](../ai/EVALUATION.md#tracing).
 - `modules/main`: `CORS_ORIGINS` (optional, default `http://localhost:3000`), `SESSION_SECRET` (required, at least 32 characters, passed to `modules/auth`), `COOKIE_SECURE` (optional, default `true`). Session and cookie: see [AUTH.md](AUTH.md#session-token).
 - `modules/phones`: `OPENAI_API_KEY` (required), `DESCRIPTION_MODEL` (optional, default `gpt-5.6-luna`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
 - `modules/rag`: `OPENAI_API_KEY` (required), `EMBEDDING_MODEL` (optional, default `text-embedding-3-small`, see [SCHEMAS.md](SCHEMAS.md#search_index-modulesrag)), `SEARCH_MODEL` (optional, default `gpt-5.6-luna`, the prompt parsing of [RAG.md](../ai/RAG.md#llm-output-structure)), `RERANK_MODEL` (optional, default `gpt-5.6-luna`, see [RERANKING.md](../ai/RERANKING.md#reranker)), `RERANK_THRESHOLD` (optional, default `0.3`), `GUARDRAIL_MODEL` (optional, default `gpt-5.6-luna`, Guardrail 2, see [GUARDRAILS.md](../ai/GUARDRAILS.md#model)).
@@ -43,7 +43,7 @@ Each module can be moved to a separate microservice later, the `main` module can
 
 ## Database connection
 
-- All modules use one PostgreSQL database and one connection: `core/database.py` creates one SQLAlchemy engine with one connection pool from `DATABASE_URL`.
+- All modules use one PostgreSQL database and one connection: `core/database.py` creates one SQLAlchemy engine with one connection pool from the settings of `core/config.py`.
 - One session and one transaction per request, shared by all modules while the Backend is a monolith. Why: see [Tradeoffs](#shared-session-in-the-monolith).
   - `modules/main` opens the session of the request with the `DbSession` dependency and passes it to every service call of the request.
   - The transaction is committed when the endpoint returns, before the response is sent. An error in the request rolls it back, so the changes of all modules in the request are saved together or not at all.
@@ -68,7 +68,7 @@ Applied to `POST /api/phones`: the listing and its search index record ([RAG.md]
 
 The listing and its search index record are changed in one transaction: see [RAG.md](../ai/RAG.md#indexing).
 
-Roadmap: see [ROADMAP.md](../ROADMAP.md#high-load).
+Future work: see [TODO.md](../TODO.md#high-load).
 
 ## Protection
 
@@ -85,6 +85,6 @@ Rate limits and security rules: see [INFRA.md](../INFRA.md#protection).
 ### Transaction retry without idempotency
 
 - A commit that succeeded on the server but lost its acknowledgement is retried and creates a second listing. Accepted for v1.0: the case is rare, and the seller deletes the duplicate.
-- Rejected for v1.0: an `Idempotency-Key` header with a table of processed keys. It adds a table and a check to every create request: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+- Rejected for v1.0: an `Idempotency-Key` header with a table of processed keys. It adds a table and a check to every create request: see [TODO.md](../TODO.md#production-baseline).
 - Rejected: a savepoint (`begin_nested`) per attempt. A lost connection breaks the whole transaction, a savepoint does not recover it.
 - Rejected: a retry on the Frontend only. It repeats the Guardrail LLM call and the embedding, so a database error doubles the cost of the request.

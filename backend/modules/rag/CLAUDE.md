@@ -25,4 +25,4 @@ Rules for AI coding agents working in `backend/modules/rag/`. Project rules: [..
 
 ## Tests
 
-- `tests/` runs against PostgreSQL with pgvector from `TEST_DATABASE_URL`. Embeddings are the stubs of `backend/conftest.py`.
+- `tests/` runs against PostgreSQL with pgvector from `TEST_DATABASE_*`. Embeddings are the stubs of `backend/conftest.py`.

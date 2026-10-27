@@ -45,5 +45,5 @@ The rules below are specific to this project and take precedence over `.claude/C
 
 ### File names
 
-- `docs/TASK.md` is the product requirements of the project.
+- `TASK.md` in the repository root is the product requirements of the project.
 - `TASK.md` inside a task folder in `.claude/tasks/` is a harness artifact: the requirements of one task. The two files are not related.

@@ -4,8 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from core import config as database_config
 from core.config import ENV_FILE as DATABASE_ENV_FILE
-from core.config import DatabaseSettings
+from core.config import DatabaseSettings, PytestDatabaseSettings
 from core.config import get_settings as get_database_settings
 from core.tracing import TracingSettings
 from core.tracing import get_settings as get_tracing_settings
@@ -53,7 +54,6 @@ OPENAI_KEY = "test-openai-key"
 def test_missing_variables_stop_the_app(no_env: None) -> None:
     with pytest.raises(SystemExit) as exc:
         check_config()
-    assert "DATABASE_URL: Field required" in str(exc.value)
     assert "SESSION_SECRET: Field required" in str(exc.value)
     assert str(exc.value).count("OPENAI_API_KEY: Field required") == 1
 
@@ -87,6 +87,38 @@ def test_ai_models_have_the_documented_defaults(no_env: None, monkeypatch: pytes
     assert PhonesSettings().description_model == "gpt-5.6-luna"
     assert PhonesSettings().guardrail_model == "gpt-5.6-luna"
     assert RagSettings().embedding_model == "text-embedding-3-small"
+
+
+def test_database_url_is_built_from_postgres_variables(no_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("POSTGRES_USER", "market")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "p@ss/word")
+    monkeypatch.setenv("POSTGRES_DB", "market_db")
+    monkeypatch.setenv("POSTGRES_HOST", "db")
+    monkeypatch.setenv("POSTGRES_PORT", "5433")
+    assert DatabaseSettings().database_url == "postgresql://market:p%40ss%2Fword@db:5433/market_db"
+    assert DatabaseSettings().async_database_url == "postgresql+asyncpg://market:p%40ss%2Fword@db:5433/market_db"
+
+
+def test_database_url_defaults(no_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST", "POSTGRES_PORT"):
+        monkeypatch.delenv(name, raising=False)
+    assert DatabaseSettings().database_url == "postgresql://postgres@localhost:5432/app"
+
+
+def test_test_database_is_built_from_test_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(PytestDatabaseSettings.model_config, "env_file", None)
+    monkeypatch.setenv("TEST_DATABASE_USER", "market")
+    monkeypatch.setenv("TEST_DATABASE_PASSWORD", "p@ss")
+    monkeypatch.setenv("TEST_DATABASE_DB", "market_test")
+    monkeypatch.setenv("POSTGRES_HOST", "db")
+    monkeypatch.setenv("POSTGRES_PORT", "5433")
+    assert database_config.test_database_url() == "postgresql://market:p%40ss@db:5433/market_test"
+
+
+def test_database_url_from_the_environment_wins(no_env: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("POSTGRES_DB", "market_db")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://postgres@localhost:5432/app_test")
+    assert DatabaseSettings().database_url == "postgresql://postgres@localhost:5432/app_test"
 
 
 @pytest.mark.parametrize("env_file", [DATABASE_ENV_FILE, MAIN_ENV_FILE])

@@ -60,5 +60,7 @@ users_rate_limit = RateLimit(limit=5, window_seconds=10)
 phones_description_rate_limit = RateLimit(limit=1, window_seconds=10)
 phones_create_rate_limit = RateLimit(limit=1, window_seconds=10)
 my_listings_rate_limit = RateLimit(limit=5, window_seconds=10)
+# `GET /api/phones/{id}/contact`: protection of WhatsApp numbers against scraping.
+phones_contact_rate_limit = RateLimit(limit=5, window_seconds=60)
 # `POST /api/search`: protection against cost attacks on OpenAI.
 search_rate_limit = RateLimit(limit=3, window_seconds=10)

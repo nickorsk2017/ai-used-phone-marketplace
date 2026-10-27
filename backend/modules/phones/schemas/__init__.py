@@ -1,4 +1,5 @@
 from modules.phones.schemas.phone import (
+    LISTING_TEXT_MAX_LENGTH,
     GeneratedDescription,
     GuardrailVerdict,
     MyListings,
@@ -9,6 +10,7 @@ from modules.phones.schemas.phone import (
 )
 
 __all__ = [
+    "LISTING_TEXT_MAX_LENGTH",
     "GeneratedDescription",
     "GuardrailVerdict",
     "MyListings",
