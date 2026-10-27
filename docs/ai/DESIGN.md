@@ -4,6 +4,7 @@ AI components of the system: models, orchestration, vector search, guardrails an
 
 | Document | Content |
 | --- | --- |
+| [HARNESS.md](HARNESS.md) | LLM Harness (RAG Harness): LLM calls, contracts, validation, failure handling |
 | [RAG.md](RAG.md) | Search: hybrid RAG, LangGraph pipeline, LLM output, model code, vector index |
 | [RERANKING.md](RERANKING.md) | Reranking of the search results: LLM reranker, output validation, diversity limit, fallback |
 | [GUARDRAILS.md](GUARDRAILS.md) | Toxic content, fraud and Prompt Injection protection of listings, Prompt Injection protection of search |

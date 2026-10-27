@@ -129,8 +129,9 @@ backend-dev: backend-check
 	$(UV_RUN) uvicorn main:app --reload --port 8000
 
 backend-test:
-	$(UV_RUN) ruff check .
+	$(UV_RUN) ruff check --quiet .
 	$(UV_RUN) pytest
+	@printf '\033[1;32mAll checks passed!\033[0m\n'
 
 migrate: backend-check
 	$(UV_RUN) alembic upgrade head
