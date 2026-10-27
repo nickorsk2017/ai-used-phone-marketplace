@@ -1,0 +1,9 @@
+# Production override: prebuilt images from GHCR, see docs/INFRA.md#build-and-deployment.
+services:
+  backend:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/backend:${IMAGE_TAG:-latest}
+    pull_policy: missing
+
+  frontend:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/frontend:${IMAGE_TAG:-latest}
+    pull_policy: missing
