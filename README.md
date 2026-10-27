@@ -18,7 +18,7 @@ See [BRIEF.md](BRIEF.md#what-is-real-and-what-is-stubbed).
 
 ## Documentation
 
-Documentation is the source of truth: the system is designed in `docs/` first, the Claude agent generates the code from it. List of the documents: [DOCUMENTATION.md](docs/DOCUMENTATION.md). Development process: [CLAUDE-HARNESS.md](docs/ai/CLAUDE-HARNESS.md).
+Documentation is the source of truth: the system is designed in `docs/` first, the Claude agent generates the code from it. List of the documents: [DOCUMENTATION.md](docs/DOCUMENTATION.md). Development process: [CLAUDE.md](docs/ai/CLAUDE.md).
 
 ## Repository structure
 

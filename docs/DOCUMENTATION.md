@@ -35,7 +35,7 @@ List of the project documents. `docs/` is the source of truth: the system is des
 | --- | --- |
 | [DESIGN.md](ai/DESIGN.md) | AI stack, AI in the Backend modules |
 | [HARNESS.md](ai/HARNESS.md) | LLM Harness (RAG Harness): LLM calls, contracts, validation, failure handling |
-| [CLAUDE-HARNESS.md](ai/CLAUDE-HARNESS.md) | Claude Harness: development process with Planner, Executor, Validator |
+| [CLAUDE.md](ai/CLAUDE.md) | Claude Harness: development process with Planner, Executor, Validator |
 | [RAG.md](ai/RAG.md) | Search: hybrid RAG, LLM output, model code |
 | [RERANKING.md](ai/RERANKING.md) | Reranker: input, output validation, diversity limit, fallback |
 | [GUARDRAILS.md](ai/GUARDRAILS.md) | Toxic content, fraud and Prompt Injection protection of listings, Prompt Injection protection of search |

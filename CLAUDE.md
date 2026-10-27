@@ -21,7 +21,7 @@ Rules for AI coding agents working in this repository.
 
 ## 3. Claude Harness
 
-Tasks are executed with the Claude Harness: roles Engineer, Planner, Executor and Validator, a state machine and enforced write rules. Overview: [CLAUDE-HARNESS.md](docs/ai/CLAUDE-HARNESS.md). Entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md). Role instructions: `.claude/skills/<Role>/SKILL.md`.
+Tasks are executed with the Claude Harness: roles Engineer, Planner, Executor and Validator, a state machine and enforced write rules. Overview: [CLAUDE.md](docs/ai/CLAUDE.md). Entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md). Role instructions: `.claude/skills/<Role>/SKILL.md`.
 
 The rules below are specific to this project and take precedence over `.claude/CLAUDE.md`.
 

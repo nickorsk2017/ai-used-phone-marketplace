@@ -1,4 +1,4 @@
-# CLAUDE-HARNESS.md
+# CLAUDE.md
 
 Claude Harness: the development process of the project. It is not a part of the product. The LLM Harness of the product: [HARNESS.md](HARNESS.md). Claude agents generate the code from the specifications in `docs/` and check it against them. The Engineer writes the task, approves high-risk plans and commits.
 

@@ -10,7 +10,7 @@ An AI marketplace of used phones. The buyer finds a phone in minutes instead of 
 
 **Business.** The business loses money when the user leaves the platform without quickly finding a product.
 
-### Metrics
+### Metrics problem
 
 - 80% of shoppers buy elsewhere after a failed site search [1].
 - Searchers convert at 4.63% vs 2.77% for non-searchers [1].
@@ -75,7 +75,7 @@ Guardrail 1 protects the search too: listing text is later passed to the reranke
 
 ### Claude Pipeline
 
-The development process, not the product. Claude agents in the roles Planner, Executor and Validator generate the code from `docs/` and check it against them. A state machine in `STATE.yaml` routes the task by complexity, hooks enforce the write rules of each role, the Engineer approves high-risk plans and commits. Details: [CLAUDE-HARNESS.md](docs/ai/CLAUDE-HARNESS.md). Agent entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md).
+The development process, not the product. Claude agents in the roles Planner, Executor and Validator generate the code from `docs/` and check it against them. A state machine in `STATE.yaml` routes the task by complexity, hooks enforce the write rules of each role, the Engineer approves high-risk plans and commits. Details: [CLAUDE.md](docs/ai/CLAUDE.md). Agent entry point: [.claude/CLAUDE.md](.claude/CLAUDE.md).
 
 ## End User and Interface
 

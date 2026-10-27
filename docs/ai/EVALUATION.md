@@ -178,3 +178,59 @@ To be filled after the implementation.
 - The metrics are plain functions: `make eval LOCAL=1` runs them without LangSmith, and a move to another platform (for example Langfuse) changes the runner, not the metrics.
 - DeepEval and Ragas are not used: their LLM judge metrics (faithfulness, hallucination, answer relevancy) evaluate a generated answer, and the project generates no answer from the found listings. They are reconsidered if it does.
 - Offline evaluation is `make eval`. Online evaluation on real users is a part of the production baseline: see [TODO.md](../TODO.md#production-baseline).
+
+
+## Metrics and targets
+
+| Dataset | Target step | Metrics | Target |
+| --- | --- | --- | --- |
+| `rag.parse` | Prompt parsing | `valid_output`, `condition`, `price`, `os` | 100% valid JSON |
+| `rag.clarification` | Prompt parsing | `valid_output`, `clarification` | All vague prompts and advice questions answered in text, no false clarifications |
+| `rag.search` | Whole search on the evaluation database | `hit_rate@5`, `precision@5`, `recall@20`, `mrr`, `ndcg@10` | Measured, no target in v1.0 |
+| `phones.description` | Model data generation | `valid_output`, `model_code`, `os`, `specifications` | 100% valid JSON |
+| `phones.hallucinated_models` | Model data generation | `no_description` | 100% |
+
+Ranking metrics use grades 2 (highly relevant), 1 (relevant), 0 (other). Relevant listings are computed by rules over the seed, so Recall is measured without an LLM judge. Formulas: see [EVALUATION.md](EVALUATION.md#metrics-1).
+
+### Metrics Result
+
+Run of `make docker-eval` on 2026-10-27: real OpenAI calls, experiments in LangSmith.
+
+| Dataset | Metric | Score | Cases |
+| --- | --- | --- | --- |
+| `rag.parse` | valid_output | 1.00 | 15 |
+| | condition | 1.00 | 15 |
+| | price | 1.00 | 15 |
+| | os | 1.00 | 13 |
+| `rag.clarification` | valid_output | 1.00 | 16 |
+| | clarification | 1.00 | 16 |
+| `rag.search` | hit_rate@5 | 1.00 | 15 |
+| | precision@5 | 0.78 | 15 |
+| | recall@20 | 0.74 | 15 |
+| | mrr | 1.00 | 15 |
+| | ndcg@10 | 0.84 | 15 |
+| `phones.description` | valid_output | 1.00 | 15 |
+| | model_code | 0.80 | 15 |
+| | os | 0.80 | 15 |
+| | specifications | 0.80 | 15 |
+| `phones.hallucinated_models` | no_description | 1.00 | 10 |
+
+Latency, errors, tokens and cost per dataset. `rag.search` runs one request at a time: its latency is the latency of one search (guardrail, parse, retrieval, rerank). The other datasets time one LLM step and run 4 requests in parallel.
+
+| Dataset | p50 s | p95 s | Errors | Tokens | Cost $ |
+| --- | --- | --- | --- | --- | --- |
+| `rag.parse` | 3.27 | 5.00 | 0 | 17715 | 0.0034 |
+| `rag.clarification` | 2.27 | 3.92 | 0 | 18068 | 0.0024 |
+| `rag.search` | 13.22 | 15.25 | 0 | 105679 | 0.0371 |
+| `phones.description` | 3.25 | 4.47 | 0 | 9829 | 0.0054 |
+| `phones.hallucinated_models` | 1.39 | 1.87 | 0 | 2037 | 0.0006 |
+| Total | | | 0 | 153328 | 0.0489 |
+
+- Targets met: 100% valid JSON, all clarification cases, 100% hallucinated models rejected.
+- The reranker is an LLM: scores vary slightly between runs. The trend across experiments matters, not one run.
+- Search time 5 to 13 s, most of it is the rerank call.
+
+Changes after the previous run:
+
+- `os` in `rag.parse` 0.69 to 1.00: the parse prompt sets the OS from a brand or a model: see [RAG.md](RAG.md#llm-output-structure).
+- Precision@5 divides by `min(5, relevant listings)`: 6 of 15 cases have fewer than 5 relevant listings in the seed.
