@@ -93,15 +93,61 @@ Structure of the applications: [Backend](docs/backend/STRUCTURE.md), [Frontend](
 
 ## Getting started
 
-Requirements: Docker with Docker Compose, an OpenAI API key. PostgreSQL with pgvector runs in a container.
+Requirements: Docker Desktop (running) with Docker Compose v2, `make`, an OpenAI API key. PostgreSQL with pgvector runs in a container.
+
+1. Create the environment files:
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+```
+
+2. Fill in `POSTGRES_PASSWORD`, `SESSION_SECRET` and `OPENAI_API_KEY` in `backend/.env`. `SESSION_SECRET` is at least 32 characters, generate it with:
+
+```bash
+openssl rand -hex 32
+```
+
+In Safari set `COOKIE_SECURE=false`: Safari rejects a Secure cookie over local HTTP.
+
+3. Build and start the containers: PostgreSQL, migrations, `backend`, `frontend`.
+
+```bash
 make up
 ```
 
-The first two commands create the environment files. Fill in `POSTGRES_PASSWORD`, `SESSION_SECRET` and `OPENAI_API_KEY` in `backend/.env`. `make up` builds the images, starts PostgreSQL, applies the Alembic migrations and starts the `frontend` (http://localhost:3000) and `backend` (http://localhost:8000) services. `make down` stops them. Details: [INFRA.md](docs/INFRA.md#docker-compose).
+4. Load the seed users and listings. Real OpenAI calls: embeddings of the listings.
+
+```bash
+make docker-seed
+```
+
+5. Open http://localhost:3000. API health check: http://localhost:8000/api/health.
+
+`make down` stops the containers, the database volume is kept. Details: [INFRA.md](docs/INFRA.md#docker-compose).
+
+### Troubleshooting
+
+- A port is busy (3000, 8000, 5433): free the ports and start again. The command also stops the Docker containers of other projects that publish these ports.
+
+```bash
+make kill-all-ports
+make up
+```
+
+- Logs of the containers:
+
+```bash
+make logs
+```
+
+- `POSTGRES_PASSWORD` was changed after the first start: the volume keeps the old password and the backend cannot connect. Delete the database volume, all data is lost, then start again:
+
+```bash
+make reset-db
+make up
+make docker-seed
+```
 
 ## Deployment
 

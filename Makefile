@@ -9,13 +9,14 @@ PORTS := 3000 8000 5433
 
 COMPOSE = docker compose $(foreach env_file,$(wildcard $(BACKEND_DIR)/.env $(FRONTEND_DIR)/.env),--env-file $(env_file))
 
-.PHONY: help up down logs kill-all-ports docker-seed docker-seed-test docker-eval docker-env frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset eval up-all
+.PHONY: help up down logs reset-db kill-all-ports docker-seed docker-seed-test docker-eval docker-env frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset eval up-all
 
 help:
 	@echo "Docker:"
 	@echo "  make up                Build the images, start PostgreSQL, apply the migrations, start the frontend and backend containers"
 	@echo "  make down              Stop and remove the containers, the database volume is kept"
 	@echo "  make logs              Follow the logs of the containers"
+	@echo "  make reset-db          Stop the containers and delete the database volume, all data is lost"
 	@echo "  make kill-all-ports    Free the ports $(PORTS): stop the containers that publish them, kill the other processes that listen on them"
 	@echo "  make docker-seed       Apply the migrations, then load the seed users and listings into the database of the db container"
 	@echo "  make docker-seed-test  Prepare the evaluation database in the db container: create, migrate, reload the seed when it changed"
@@ -55,6 +56,9 @@ down:
 
 logs:
 	$(COMPOSE) logs -f
+
+reset-db: docker-env
+	$(COMPOSE) down -v
 
 kill-all-ports:
 	@for port in $(PORTS); do \

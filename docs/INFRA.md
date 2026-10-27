@@ -100,6 +100,7 @@ A monthly spending limit is set in OpenAI.
 - `make up`: build the images, apply the migrations and start the services, see [Docker Compose](#docker-compose).
 - `make down`: stop and remove the containers.
 - `make logs`: follow the service logs.
+- `make reset-db`: stop and remove the containers and delete the `postgres-data` volume. All data is lost. Needed when `POSTGRES_USER`, `POSTGRES_PASSWORD` or `POSTGRES_DB` changed after the first start, see [Docker Compose](#docker-compose).
 - `make kill-all-ports`: free the host ports 3000, 8000 and 5433: stop the Docker containers that publish them, kill the other processes that listen on them (SIGTERM, then SIGKILL after 1 second). Docker Desktop processes are skipped.
 - `make docker-seed`: apply the migrations and load the [seed](backend/STRUCTURE.md#seed) into the database of `db`. Real OpenAI calls (embeddings).
 - `make docker-eval`: run the [evaluation](ai/EVALUATION.md#run) in a one-off `backend` container on the evaluation database in `db`, with the parameters of `make eval` (`DATASET`, `LOCAL`). Real OpenAI calls.
