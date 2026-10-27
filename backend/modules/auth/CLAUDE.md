@@ -22,4 +22,4 @@ Rules for AI coding agents working in `backend/modules/auth/`. Project rules: [.
 
 ## Tests
 
-- `tests/` runs against PostgreSQL from `TEST_DATABASE_URL`. Fixtures: `backend/conftest.py`.
+- `tests/` runs against PostgreSQL from `TEST_DATABASE_*`. Fixtures: `backend/conftest.py`.

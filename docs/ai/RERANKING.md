@@ -109,7 +109,7 @@ Reranking metrics are listed in [EVALUATION.md](EVALUATION.md#metrics): ranking 
 ### LLM reranker vs alternatives
 
 - Cross-encoder (Cohere Rerank, bge-reranker): fast and cheap, but does not apply the numeric `preferences` (`battery_capacity >= 5000`). A hosted cross-encoder is an extra provider and key.
-- Rule-based score on `preferences`: deterministic and free, but does not evaluate the description and does not detect a wrong model code. Possible as a first stage before the LLM in production: see [ROADMAP.md](../ROADMAP.md).
+- Rule-based score on `preferences`: deterministic and free, but does not evaluate the description and does not detect a wrong model code. Possible as a first stage before the LLM in production: see [TODO.md](../TODO.md).
 - The LLM reranker adds one LLM call to each search: latency and cost are measured in [EVALUATION.md](EVALUATION.md#metrics).
 
 ### Fallback instead of an error

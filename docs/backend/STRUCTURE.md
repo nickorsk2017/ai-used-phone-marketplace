@@ -22,6 +22,8 @@ backend/
   conftest.py
   pyproject.toml
   uv.lock
+  Dockerfile
+  .dockerignore
   .env.example
 ```
 
@@ -32,7 +34,7 @@ backend/
 - `seed`: synthetic seed data and the script that loads it: see [Seed](#seed).
 - `eval`: LangSmith evaluation, one folder per module and one file per AI step, `make eval`: see [Eval](#eval).
 - `main.py`: entry point.
-- `conftest.py`: shared test fixtures (PostgreSQL from `TEST_DATABASE_URL`).
+- `conftest.py`: shared test fixtures (PostgreSQL from `TEST_DATABASE_*`).
 - `pyproject.toml`, `uv.lock`: uv workspace of the modules, dev tools (pytest, ruff).
 - `.env.example`: template of `backend/.env`. Variables: see [DESIGN.md](DESIGN.md#configuration).
 
@@ -80,7 +82,7 @@ The API for the Frontend. No tables and no models.
 - One listing per model. Model data: the model code, the main camera, the battery and the display of the real model. The model code is the US code. A model without a US version has the global code, or the China code if the model is sold only in China: see [RAG.md](../ai/RAG.md#model-code-limitations). The battery and the display are the values of the version of this code; for a foldable, the display is the main display.
 - `run.py`: the load script, `make seed`. It checks that `model_code` and `model_name` are unique, creates the missing users, computes the embeddings of the missing listings with `rag.services.embed_listing`, then creates the listings and their `search_index` records in one transaction with `phones.services.create_phone` and `rag.services.index`. Guardrail 1 is not called: the seed text is trusted.
 - A repeated run adds only the missing users and listings: a listing is identified by its user and `model_code`. `make seed-reset` deletes the seed users, their listings and their index records first.
-- The domain modules have no lookup of a user by WhatsApp and no delete, so `run.py` reads the seed user IDs and deletes the seed rows with SQL directly. This is the only code outside a module that touches module tables, besides `migrations/`.
+- The domain modules have no lookup of a user by WhatsApp and no delete of all listings of a user, so `run.py` reads the seed user IDs and deletes the seed rows with SQL directly. This is the only code outside a module that touches module tables, besides `migrations/`.
 
 ## Eval
 
@@ -109,7 +111,7 @@ eval/
 - `schemas.py`: `EvalDataset` (name, cases, target, metrics) and `Example`.
 - `upload.py`: creates the LangSmith dataset or replaces its examples when the cases changed.
 - `rag/ranking.py`: the only step on the database: the rank metrics and the relevance rules over the seed, see [EVALUATION.md](../ai/EVALUATION.md#ranking).
-- `database.py`: prepares the evaluation database of `EVAL_DATABASE_URL` for a run with `rag.ranking`: creates it when missing, applies the migrations, reloads the seed when its fingerprint changed.
+- `database.py`: prepares the evaluation database of `EVAL_DATABASE_*` for a run with `rag.ranking`: creates it when missing, applies the migrations, reloads the seed when its fingerprint changed. `python -m eval.database` (`make docker-seed-test`) runs only this preparation.
 - `run.py`: `make eval`. Collects the datasets of all modules, uploads the cases, runs the experiments and prints the results table. `--local` (`make eval LOCAL=1`) runs the targets and the metrics without LangSmith.
 - `tests/`: unit tests of the cases and the metrics, no LLM and no LangSmith calls. A part of `make backend-test`.
 - `eval` is not a module: it imports only the `services` and `schemas` of the modules, and the settings of `modules/phones` and `modules/rag` for the model names in the experiment metadata.

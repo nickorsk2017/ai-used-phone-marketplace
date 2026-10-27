@@ -7,7 +7,7 @@ They return Pydantic schemas, never ORM objects.
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.phones.models import Phone
@@ -42,3 +42,8 @@ async def get_phones(session: AsyncSession, phone_ids: Sequence[uuid.UUID]) -> l
     rows = await session.scalars(select(Phone).where(Phone.id.in_(list(phone_ids))))
     by_id = {phone.id: phone for phone in rows}
     return [PhoneRead.model_validate(by_id[phone_id]) for phone_id in phone_ids if phone_id in by_id]
+
+
+async def delete_phone(session: AsyncSession, phone_id: uuid.UUID) -> None:
+    """Deletes the listing. The owner check is done by `modules/main`: docs/backend/AUTH.md#access."""
+    await session.execute(delete(Phone).where(Phone.id == phone_id))

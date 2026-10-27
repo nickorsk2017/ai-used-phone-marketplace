@@ -5,6 +5,7 @@ Add phone flow: docs/features/MY_LISTING.md#add-phone-flow. Details and contact:
 
 import logging
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import DBAPIError
@@ -12,8 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import run_in_transaction
 from modules.main.ai import AI_ERRORS
-from modules.main.dependencies import CurrentUserShortSession, DbSession
-from modules.main.rate_limit import phones_create_rate_limit, phones_description_rate_limit
+from modules.main.dependencies import CurrentUserShortSession, DbSession, owner_access
+from modules.main.rate_limit import (
+    phones_contact_rate_limit,
+    phones_create_rate_limit,
+    phones_description_rate_limit,
+)
 from modules.phones import services as phones_service
 from modules.phones.schemas import PhoneCreate, PhoneDescription, PhoneDescriptionRequest, PhoneRead
 from modules.rag import services as rag_service
@@ -30,6 +35,19 @@ LISTING_NOT_SAVED = "The listing was not saved"
 PHONE_NOT_FOUND = "Phone not found"
 
 router = APIRouter(prefix="/phones", tags=["phones"])
+
+# `Owner` access to the listing of `{phone_id}`: the owner ID, docs/backend/AUTH.md#access.
+PhoneOwner = Annotated[
+    uuid.UUID,
+    Depends(
+        owner_access(
+            phones_service.get_phone_owner_id,
+            lambda owner_id: owner_id,
+            path_param="phone_id",
+            not_found=PHONE_NOT_FOUND,
+        )
+    ),
+]
 
 
 def _unavailable(detail: str) -> HTTPException:
@@ -53,7 +71,7 @@ async def get_phone(phone_id: str, session: DbSession) -> PhoneRead:
     return phone
 
 
-@router.get("/{phone_id}/contact")
+@router.get("/{phone_id}/contact", dependencies=[Depends(phones_contact_rate_limit)])
 async def get_phone_contact(phone_id: str, session: DbSession) -> UserContact:
     """Contact of the listing owner by the listing ID: the owner ID stays on the Backend."""
     owner_id = await phones_service.get_phone_owner_id(session, _phone_id(phone_id))
@@ -106,3 +124,14 @@ async def create_phone(body: PhoneCreate, user: CurrentUserShortSession) -> Phon
     except DBAPIError as error:
         logger.exception("Listing transaction failed")
         raise _unavailable(LISTING_NOT_SAVED) from error
+
+
+@router.delete("/{phone_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_phone(phone_id: str, owner: PhoneOwner, session: DbSession) -> None:
+    """The listing and its search index record in one transaction: docs/features/MY_LISTING.md#delete-phone-flow.
+
+    `PhoneOwner` has checked the session, the ID and the owner in the same transaction.
+    """
+    deleted_id = _phone_id(phone_id)
+    await phones_service.delete_phone(session, deleted_id)
+    await rag_service.delete(session, deleted_id)

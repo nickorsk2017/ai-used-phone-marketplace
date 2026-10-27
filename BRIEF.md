@@ -10,7 +10,7 @@ An AI marketplace of used phones. The buyer finds a phone in minutes instead of 
 
 ## Problem Thesis
 
-Problem owner: the marketplace manager, who loses paid traffic when search fails. End user: the buyer, whose search behavior decides that conversion.
+Problem owner: the marketplace manager, who loses paid traffic when search fails. End user: the buyer of a used phone, whose search behavior decides that conversion.
 
 ### Business problem: the marketplace manager
 
@@ -26,7 +26,7 @@ The manager pays for traffic. The search page decides if it converts. Filters do
 - The choice takes many sources: reviews, friends, brand sites, videos ([YouGov](https://yougov.com/articles/46465-from-reviews-to-experts-how-global-consumers-research-before-buying-a-phone)).
 - Trust is the main barrier. 32% of second-hand buyers met a scam in two years ([Which?](https://news.stv.tv/world/third-of-buyers-experienced-scam-on-second-hand-marketplaces-in-last-two-years-which-survey-finds)).
 
-Limits of the data: vendor reports describe their own products. The 80% figure is a survey answer. No public source measures the time to choose a used phone. Details: [TASK.md](docs/TASK.md#business-problem).
+Limits of the data: vendor reports describe their own products. The 80% figure is a survey answer. No public source measures the time to choose a used phone. Details: [TASK.md](TASK.md#business-problem).
 
 ## Two Harnesses
 
@@ -77,7 +77,7 @@ Why a page with one prompt, not a chat:
 - Backend: modular monolith on FastAPI, modules `users`, `auth`, `phones`, `rag`, `main` ([DESIGN.md](docs/backend/DESIGN.md)).
 - Frontend: Next.js, TypeScript, HeroUI v3, Tailwind CSS, React Hook Form, Zod, Zustand ([DESIGN.md](docs/frontend/DESIGN.md)).
 - AI: OpenAI through LangChain, LangGraph, pgvector hybrid RAG with reranking ([DESIGN.md](docs/ai/DESIGN.md)).
-- Database: PostgreSQL (Supabase) with pgvector. Seed of 90 listings ([INFRA.md](docs/INFRA.md)).
+- Database: PostgreSQL with pgvector in a Docker container. Seed of 90 listings ([INFRA.md](docs/INFRA.md)).
 
 ## Right-Sizing
 
@@ -94,6 +94,23 @@ Guardrail and Parse fail closed (HTTP 503). Rerank fails open: it changes the or
 
 Rejected: an agent with tools (variable LLM calls, harder to evaluate, the request is one-shot). Vector search only (no exact model match, no price enforcement).
 
+## What Is Real and What Is Stubbed
+
+Real: search by one prompt, listing creation with AI-generated model data, guardrails, Phone details with the Deal flow, evaluation of the AI steps.
+
+Stubbed or simplified on purpose:
+
+| Part | v1.0 | Limitation |
+| --- | --- | --- |
+| Data | 90 synthetic seed listings, one per model ([EVALUATION.md](docs/ai/EVALUATION.md#data)) | No real traffic |
+| Authorization | Browser session without registration ([AUTH.md](docs/backend/AUTH.md#tradeoffs)) | Session tied to one browser, no logout |
+| Model identification | Model code from the LLM, no model catalog ([RAG.md](docs/ai/RAG.md#model-code-limitations)) | Rare models can get a wrong code, one model can get several codes |
+| Phone details cache | Time-based revalidation, no sitemap ([PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md#tradeoffs)) | An updated or deleted listing is shown for up to 60 seconds |
+| WhatsApp | No integration: the seller enters the number, the buyer copies it ([PHONE_DETAILS.md](docs/features/PHONE_DETAILS.md#deal-flow)) | |
+| Images, multi-turn chat | Not in v1.0 ([TASK.md](TASK.md#out-of-scope-for-v10)) | |
+
+Each document in `docs/` has a Tradeoffs section with the rationale of its decisions.
+
 ## Tooling and Tradeoffs
 
 - LangGraph: branches and per-node retries match the pipeline diagram. Considered: plain async Python with hand-written branches and tracing.
@@ -102,6 +119,5 @@ Rejected: an agent with tools (variable LLM calls, harder to evaluate, the reque
 - OpenAI through LangChain: provider changed in configuration. pgvector: hybrid search in one SQL query.
 - FastAPI: AI libraries are Python-first. Pydantic validates API contracts and LLM output.
 - Next.js: server rendering and ISR for SEO of Phone details. HeroUI: ready-made components.
-- Modular monolith: fast PoC, modules can become services later ([ROADMAP.md](docs/ROADMAP.md)).
+- Modular monolith: fast PoC, modules can become services later ([TODO.md](docs/TODO.md)).
 
-Not done on purpose: registration, WhatsApp integration, model catalog, images, multi-turn chat ([README.md](README.md#what-is-real-and-what-is-stubbed)).

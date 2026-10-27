@@ -6,23 +6,33 @@ from pathlib import Path
 import pytest
 
 import conftest  # noqa: F401  # test environment: no traces, stub keys
-from core.config import EVAL_DATABASE_URL_DEFAULT, DatabaseSettings, eval_database_url, get_settings
+from core.config import DatabaseSettings, EvalDatabaseSettings, PytestDatabaseSettings, eval_database_url, get_settings
 from eval import database
 from eval.database import WorkingDatabaseError, seed_fingerprint, use_eval_database
 from modules.rag.config import RagSettings
 from modules.rag.config import get_settings as get_rag_settings
 
 WORKING = "postgresql://postgres@localhost:5432/app"
-TESTS = "postgresql://postgres@localhost:5432/app_test"
 EVAL = "postgresql://postgres@localhost:5432/app_eval"
 
 
 @pytest.fixture(autouse=True)
 def environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(DatabaseSettings.model_config, "env_file", None)
+    monkeypatch.setitem(EvalDatabaseSettings.model_config, "env_file", None)
+    monkeypatch.setitem(PytestDatabaseSettings.model_config, "env_file", None)
+    for name in (
+        "EVAL_DATABASE_USER",
+        "EVAL_DATABASE_PASSWORD",
+        "TEST_DATABASE_USER",
+        "TEST_DATABASE_PASSWORD",
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+    ):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("DATABASE_URL", WORKING)
-    monkeypatch.setenv("TEST_DATABASE_URL", TESTS)
-    monkeypatch.setenv("EVAL_DATABASE_URL", EVAL)
+    monkeypatch.setenv("TEST_DATABASE_DB", "app_test")
+    monkeypatch.setenv("EVAL_DATABASE_DB", "app_eval")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -32,8 +42,16 @@ def environment(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_default_eval_database(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("EVAL_DATABASE_URL")
-    assert eval_database_url() == EVAL_DATABASE_URL_DEFAULT
+    monkeypatch.delenv("EVAL_DATABASE_DB")
+    assert eval_database_url() == EVAL
+
+
+def test_eval_database_is_built_from_eval_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("EVAL_DATABASE_USER", "market")
+    monkeypatch.setenv("EVAL_DATABASE_PASSWORD", "p@ss")
+    monkeypatch.setenv("EVAL_DATABASE_DB", "market_eval")
+    monkeypatch.setenv("POSTGRES_HOST", "db")
+    assert eval_database_url() == "postgresql://market:p%40ss@db:5432/market_eval"
 
 
 def test_process_is_switched_to_the_eval_database() -> None:
@@ -45,12 +63,12 @@ def test_process_is_switched_to_the_eval_database() -> None:
 @pytest.mark.parametrize(
     ("variable", "clash"),
     [
-        ("DATABASE_URL", "postgres://postgres@localhost:5432/app"),
-        ("TEST_DATABASE_URL", "postgresql+asyncpg://postgres@localhost:5432/app_test"),
+        ("POSTGRES_", "app"),
+        ("TEST_DATABASE_", "app_test"),
     ],
 )
 def test_working_and_test_databases_are_refused(monkeypatch: pytest.MonkeyPatch, variable: str, clash: str) -> None:
-    monkeypatch.setenv("EVAL_DATABASE_URL", clash)
+    monkeypatch.setenv("EVAL_DATABASE_DB", clash)
     with pytest.raises(WorkingDatabaseError, match=variable):
         use_eval_database()
     assert os.environ["DATABASE_URL"] == WORKING
@@ -161,7 +179,7 @@ async def test_unreadable_fingerprint_reloads_the_seed(monkeypatch: pytest.Monke
 
 async def test_guard_runs_before_any_database_step(monkeypatch: pytest.MonkeyPatch) -> None:
     steps = Steps(monkeypatch, loaded=None)
-    monkeypatch.setenv("EVAL_DATABASE_URL", TESTS)
+    monkeypatch.setenv("EVAL_DATABASE_DB", "app_test")
     with pytest.raises(WorkingDatabaseError):
         await database.prepare_eval_database()
     assert steps.calls == []

@@ -23,7 +23,9 @@ ModelCode = Annotated[
     BeforeValidator(normalize_model_code),
     StringConstraints(pattern=MODEL_CODE_PATTERN, max_length=MODEL_CODE_MAX_LENGTH),
 ]
-ListingText = Annotated[str, StringConstraints(strip_whitespace=True)]
+# `description` and `condition_note`: docs/backend/SCHEMAS.md#phones-modulesphones.
+LISTING_TEXT_MAX_LENGTH = 1000
+ListingText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=LISTING_TEXT_MAX_LENGTH)]
 # Inches, `Numeric(4, 2)` in the table, a JSON number in the API.
 DisplaySize = Annotated[float, Field(gt=0, lt=100), PlainSerializer(lambda value: round(float(value), 2))]
 
@@ -45,7 +47,9 @@ class PhoneDescription(BaseModel):
     camera_megapixels: PositiveInt
     battery_capacity: PositiveInt
     display_size: DisplaySize
-    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    description: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=LISTING_TEXT_MAX_LENGTH)
+    ]
 
 
 class PhoneCreate(PhoneDescription):

@@ -1,6 +1,6 @@
 # AI Architecture
 
-AI components of the system: models, orchestration, vector search, guardrails and evaluation. Backend code and modules: [backend/DESIGN.md](../backend/DESIGN.md). Where AI is used and where it is not: [TASK.md](../TASK.md#where-ai-fits-and-where-it-does-not).
+AI components of the system: models, orchestration, vector search, guardrails and evaluation. Backend code and modules: [backend/DESIGN.md](../backend/DESIGN.md). Where AI is used and where it is not: [TASK.md](../../TASK.md#where-ai-fits-and-where-it-does-not).
 
 | Document | Content |
 | --- | --- |
@@ -14,7 +14,7 @@ AI components of the system: models, orchestration, vector search, guardrails an
 - OpenAI: LLM and embeddings in v1.0.
 - LangChain is the provider-agnostic interface for chat models and embeddings: see [Tradeoffs](#langchain-and-the-model-provider).
 - LangGraph orchestrates the search pipeline: see [RAG.md](RAG.md#orchestration-langgraph).
-- pgvector in PostgreSQL (Supabase) for the vector index (rationale: [RAG.md](RAG.md#pgvector-vs-a-dedicated-search-engine)).
+- pgvector in PostgreSQL for the vector index (rationale: [RAG.md](RAG.md#pgvector-vs-a-dedicated-search-engine)).
 - LangSmith for Evaluation, Observability and cost, ranking metrics as code: see [EVALUATION.md](EVALUATION.md).
 
 ## AI in the Backend modules
@@ -27,4 +27,4 @@ AI components of the system: models, orchestration, vector search, guardrails an
 
 ### LangChain and the model provider
 
-v1.0 uses OpenAI, but OpenAI is not assumed to be the best model for every task. The provider (Gemini, Gemma, Llama and others) is changed in the configuration, without changes in the pipeline code. Changing the embedding model requires reindexing all listings. Before real users this is not critical: the data is synthetic. The chat model and the embedding model are selected after collecting metrics with the AI model router: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+v1.0 uses OpenAI, but OpenAI is not assumed to be the best model for every task. The provider (Gemini, Gemma, Llama and others) is changed in the configuration, without changes in the pipeline code. Changing the embedding model requires reindexing all listings. Before real users this is not critical: the data is synthetic. The chat model and the embedding model are selected after collecting metrics with the AI model router: see [TODO.md](../TODO.md#production-baseline).

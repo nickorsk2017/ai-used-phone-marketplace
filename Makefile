@@ -5,9 +5,21 @@ BACKEND_DIR := backend
 UV := uv --directory $(BACKEND_DIR)
 UV_RUN := $(UV) run --all-packages
 
-.PHONY: help frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset eval up-all
+PORTS := 3000 8000 5433
+
+COMPOSE = docker compose $(foreach env_file,$(wildcard $(BACKEND_DIR)/.env $(FRONTEND_DIR)/.env),--env-file $(env_file))
+
+.PHONY: help up down logs kill-all-ports docker-seed docker-seed-test docker-eval docker-env frontend-install frontend-build frontend-start frontend-dev backend-install backend-check backend-dev backend-test migrate migration seed seed-reset eval up-all
 
 help:
+	@echo "Docker:"
+	@echo "  make up                Build the images, start PostgreSQL, apply the migrations, start the frontend and backend containers"
+	@echo "  make down              Stop and remove the containers, the database volume is kept"
+	@echo "  make logs              Follow the logs of the containers"
+	@echo "  make kill-all-ports    Free the ports $(PORTS): stop the containers that publish them, kill the other processes that listen on them"
+	@echo "  make docker-seed       Apply the migrations, then load the seed users and listings into the database of the db container"
+	@echo "  make docker-seed-test  Prepare the evaluation database in the db container: create, migrate, reload the seed when it changed"
+	@echo "  make docker-eval       Run the evaluation in the backend container (DATASET=rag.parse runs one, LOCAL=1 without LangSmith), real OpenAI calls"
 	@echo "All:"
 	@echo "  make up-all            Apply migrations, start the frontend and backend dev servers together (Ctrl+C stops both)"
 	@echo "Frontend:"
@@ -19,12 +31,62 @@ help:
 	@echo "  make backend-install   Install backend dependencies of all modules"
 	@echo "  make backend-check     Check the backend environment variables, fail with the list of missing ones"
 	@echo "  make backend-dev       Start the API on http://localhost:8000 with reload"
-	@echo "  make backend-test      Run ruff and pytest (TEST_DATABASE_URL)"
+	@echo "  make backend-test      Run ruff and pytest (TEST_DATABASE_*)"
 	@echo "  make migrate           Apply the migrations up to head"
 	@echo "  make migration MSG=\"add phone index\"  Autogenerate the next numbered migration"
 	@echo "  make seed              Apply the migrations, then load the seed users and listings into the database"
 	@echo "  make seed-reset        Delete the seed users and listings, then load them again"
 	@echo "  make eval              Run the LangSmith evaluation of all datasets (DATASET=rag.parse runs one, LOCAL=1 without LangSmith), real OpenAI calls"
+
+# ============================================================
+# Docker
+# ============================================================
+
+up: docker-env
+	$(COMPOSE) build
+	$(COMPOSE) run --rm --no-deps backend python -c "from modules.main.app import check_config; check_config()"
+	$(COMPOSE) run --rm backend alembic upgrade head
+	$(COMPOSE) up -d --wait
+	@echo "Frontend: http://localhost:3000"
+	@echo "Backend:  http://localhost:8000"
+
+down:
+	$(COMPOSE) down
+
+logs:
+	$(COMPOSE) logs -f
+
+kill-all-ports:
+	@for port in $(PORTS); do \
+		containers=$$(docker ps -q --filter publish=$$port 2>/dev/null); \
+		if [ -n "$$containers" ]; then \
+			echo "Port $$port: stopping containers $$containers"; \
+			docker stop $$containers >/dev/null; \
+		fi; \
+		for pid in $$(lsof -nP -iTCP:$$port -sTCP:LISTEN -t 2>/dev/null); do \
+			name=$$(ps -p $$pid -o comm= 2>/dev/null); \
+			case "$$name" in *docker*|*vpnkit*) echo "Port $$port: skipping Docker process $$pid ($$name)"; continue;; esac; \
+			echo "Port $$port: killing $$pid ($$name)"; \
+			kill $$pid 2>/dev/null; \
+			sleep 1; \
+			kill -0 $$pid 2>/dev/null && kill -9 $$pid 2>/dev/null; \
+		done; \
+	done; \
+	echo "Ports $(PORTS) are free"
+
+docker-seed: docker-env
+	$(COMPOSE) run --rm --build backend alembic upgrade head
+	$(COMPOSE) run --rm backend python -m seed.run
+
+docker-seed-test: docker-env
+	$(COMPOSE) run --rm --build backend python -m eval.database
+
+docker-eval: docker-env
+	$(COMPOSE) run --rm --build backend python -m eval.run $(if $(DATASET),--dataset $(DATASET)) $(if $(LOCAL),--local)
+
+docker-env:
+	@test -f $(BACKEND_DIR)/.env || { echo "Missing $(BACKEND_DIR)/.env, template: $(BACKEND_DIR)/.env.example"; exit 1; }
+	@test -f $(FRONTEND_DIR)/.env || { echo "Missing $(FRONTEND_DIR)/.env, template: $(FRONTEND_DIR)/.env.example"; exit 1; }
 
 # ============================================================
 # All

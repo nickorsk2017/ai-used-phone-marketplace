@@ -7,10 +7,17 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conftest import AiStubs, StubChatModel
+from core.llm import CLIENT_TIMEOUT_SECONDS, chat_model, embeddings
 from modules.phones import services as phones_service
 from modules.phones.prompts.description import MODEL_DELIMITER
 from modules.phones.prompts.guardrail import LISTING_DELIMITER
-from modules.phones.schemas import GeneratedDescription, GuardrailVerdict, PhoneCreate, PhoneDescription
+from modules.phones.schemas import (
+    LISTING_TEXT_MAX_LENGTH,
+    GeneratedDescription,
+    GuardrailVerdict,
+    PhoneCreate,
+    PhoneDescription,
+)
 
 FOUND = GeneratedDescription(
     model_found=True,
@@ -155,3 +162,15 @@ async def test_get_phone_and_owner(session: AsyncSession) -> None:
     unknown = uuid.uuid4()
     assert await phones_service.get_phone(session, unknown) is None
     assert await phones_service.get_phone_owner_id(session, unknown) is None
+
+
+def test_llm_clients_have_a_timeout() -> None:
+    assert chat_model("test-key", "test-model").request_timeout == CLIENT_TIMEOUT_SECONDS
+    assert embeddings("test-key", "test-model").request_timeout == CLIENT_TIMEOUT_SECONDS
+
+
+@pytest.mark.parametrize("field", ["description", "condition_note"])
+def test_listing_text_is_limited_to_1000_characters(field: str) -> None:
+    PhoneCreate(**{**LISTING.model_dump(), field: "a" * LISTING_TEXT_MAX_LENGTH})
+    with pytest.raises(ValidationError):
+        PhoneCreate(**{**LISTING.model_dump(), field: "a" * (LISTING_TEXT_MAX_LENGTH + 1)})

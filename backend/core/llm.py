@@ -11,6 +11,8 @@ from pydantic import BaseModel, SecretStr, ValidationError
 
 # Network and provider errors: the built-in retry of the client, docs/ai/RAG.md#errors-and-retries.
 CLIENT_MAX_RETRIES = 2
+# Timeout of one attempt, the OpenAI client default is 600 seconds: docs/ai/RAG.md#errors-and-retries.
+CLIENT_TIMEOUT_SECONDS = 60.0
 
 # One repeated call on an invalid LLM response: docs/ai/RAG.md#errors-and-retries.
 LLM_VALIDATION_ATTEMPTS = 2
@@ -18,11 +20,15 @@ INVALID_LLM_OUTPUT = (ValidationError, OutputParserException)
 
 
 def chat_model(api_key: str, model: str) -> BaseChatModel:
-    return ChatOpenAI(model=model, api_key=SecretStr(api_key), max_retries=CLIENT_MAX_RETRIES)
+    return ChatOpenAI(
+        model=model, api_key=SecretStr(api_key), max_retries=CLIENT_MAX_RETRIES, timeout=CLIENT_TIMEOUT_SECONDS
+    )
 
 
 def embeddings(api_key: str, model: str) -> Embeddings:
-    return OpenAIEmbeddings(model=model, api_key=SecretStr(api_key), max_retries=CLIENT_MAX_RETRIES)
+    return OpenAIEmbeddings(
+        model=model, api_key=SecretStr(api_key), max_retries=CLIENT_MAX_RETRIES, timeout=CLIENT_TIMEOUT_SECONDS
+    )
 
 
 async def llm_call[Output](

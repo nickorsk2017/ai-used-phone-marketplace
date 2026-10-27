@@ -9,10 +9,10 @@ v1.0 evaluates the steps where AI can fail regardless of the data volume: prompt
 | | Offline | Online |
 | --- | --- | --- |
 | What | `make eval`: the datasets of the generation steps and ranking, see [Run](#run) | Production metrics: latency and cost, errors, reranker fallbacks, clarifications, user feedback on the search |
-| Data | Test data only: the cases of the repository and the [seed](#data). Only `rag.ranking` uses a database, the evaluation database of `EVAL_DATABASE_URL`: see [Evaluation database](#evaluation-database) | Production traffic |
-| Tool | LangSmith experiments, or the local table of `make eval LOCAL=1` | LangSmith only: the traces of the production project, see [Tracing](#tracing), and feedback on the `rag.search` trace, see [ROADMAP.md](../ROADMAP.md#production-baseline) |
+| Data | Test data only: the cases of the repository and the [seed](#data). Only `rag.ranking` uses a database, the evaluation database of `EVAL_DATABASE_*`: see [Evaluation database](#evaluation-database) | Production traffic |
+| Tool | LangSmith experiments, or the local table of `make eval LOCAL=1` | LangSmith only: the traces of the production project, see [Tracing](#tracing), and feedback on the `rag.search` trace, see [TODO.md](../TODO.md#production-baseline) |
 
-- `make eval` never runs on the working or production database, nor on the database of the tests: a run with `EVAL_DATABASE_URL` equal to `DATABASE_URL` or to `TEST_DATABASE_URL` stops before any change.
+- `make eval` never runs on the working or production database, nor on the database of the tests: a run with `EVAL_DATABASE_*` pointing to the database of `POSTGRES_*` or of `TEST_DATABASE_*` stops before any change.
 - Production data never becomes the expected output of a case: the expected results are known only on the fixed test data. Real prompts from the traces can become new cases, run on the test data.
 
 ## Data
@@ -80,7 +80,7 @@ Dataset `rag.ranking`: the whole search (`rag.services.search`, see [RAG.md](RAG
 
 ### Evaluation database
 
-- The search runs on the evaluation database of `EVAL_DATABASE_URL` (see [DESIGN.md](../backend/DESIGN.md#configuration)) with the [seed](#data) loaded into it. It is a database of its own: not the working database of `DATABASE_URL`, and not the test database of `TEST_DATABASE_URL`, which `make backend-test` rolls back and truncates. So `make backend-test` and `make eval` can run at the same time, and the seed stays loaded between runs. Why: see [Tradeoffs](#evaluation-database-separate-from-the-tests).
+- The search runs on the evaluation database of `EVAL_DATABASE_*` (see [DESIGN.md](../backend/DESIGN.md#configuration)) with the [seed](#data) loaded into it. It is a database of its own: not the working database of `POSTGRES_*`, and not the test database of `TEST_DATABASE_*`, which `make backend-test` rolls back and truncates. So `make backend-test` and `make eval` can run at the same time, and the seed stays loaded between runs. Why: see [Tradeoffs](#evaluation-database-separate-from-the-tests).
 - Before a run that includes `rag.ranking`, `make eval` creates the database when it does not exist and applies the migrations.
 - The seed is reloaded (`seed-reset`) only when the seed fingerprint changed: a hash of the seed users and listings, the embedding model and the migration files. The fingerprint of the loaded seed is stored as the comment of the evaluation database. A database without the comment, or a comment that cannot be read or written, gets a full reload. The seed embeddings are not traced.
 
@@ -121,7 +121,7 @@ Grades: 2 highly relevant, 1 relevant, 0 any other listing.
 - The first run with `rag.ranking` creates the evaluation database and loads the seed. Next runs reuse it: see [Evaluation database](#evaluation-database).
 - The plain tests of the [Metrics](#metrics) table are a part of `make backend-test`.
 - v1.0 (PoC): the Engineer runs `make eval` manually after a change of an AI step (prompts, models, RAG, guardrails). It is not run on every commit and is not a part of the Validator checks.
-- Production: LLM evaluation is a CI quality gate before deployment: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+- Production: LLM evaluation is a CI quality gate before deployment: see [TODO.md](../TODO.md#production-baseline).
 
 ## Results
 
@@ -132,7 +132,7 @@ To be filled after the implementation.
 ### What is not measured in v1.0
 
 - Statistical quality of the search: 10 to 20 prompts on 90 synthetic listings catch regressions but do not measure the quality level on real listings.
-- Behavior on real prompts and online metrics (position of the clicked result, Phone details views and Deal clicks after a search): after the first users, see [ROADMAP.md](../ROADMAP.md#production-baseline).
+- Behavior on real prompts and online metrics (position of the clicked result, Phone details views and Deal clicks after a search): after the first users, see [TODO.md](../TODO.md#production-baseline).
 
 ### Rank metrics instead of an LLM judge
 
@@ -176,4 +176,4 @@ To be filled after the implementation.
 - LangSmith already traces every LLM call. Datasets, experiments and the comparison of runs work on the same traces, for the generation steps and for ranking.
 - The metrics are plain functions: `make eval LOCAL=1` runs them without LangSmith, and a move to another platform (for example Langfuse) changes the runner, not the metrics.
 - DeepEval and Ragas are not used: their LLM judge metrics (faithfulness, hallucination, answer relevancy) evaluate a generated answer, and the project generates no answer from the found listings. They are reconsidered if it does.
-- Offline evaluation is `make eval`. Online evaluation on real users is a part of the production baseline: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+- Offline evaluation is `make eval`. Online evaluation on real users is a part of the production baseline: see [TODO.md](../TODO.md#production-baseline).

@@ -23,6 +23,8 @@ frontend/
       modal/
   utils/
   CLAUDE.md
+  Dockerfile
+  .dockerignore
   .env.example
 ```
 

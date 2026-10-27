@@ -59,7 +59,7 @@ The Frontend sends every API request with `credentials: "include"`. There is no 
 
 ### No registration in v1.0
 
-v1.0 has no registration and no login, as required by [TASK.md](../TASK.md#out-of-scope-for-v10). The PoC is used to collect feedback, so a user only needs to try the product once or twice.
+v1.0 has no registration and no login, as required by [TASK.md](../../TASK.md#out-of-scope-for-v10). The PoC is used to collect feedback, so a user only needs to try the product once or twice.
 
 ### Signed token in an HttpOnly cookie
 
@@ -74,4 +74,4 @@ v1.0 has no registration and no login, as required by [TASK.md](../TASK.md#out-o
 - A session is tied to one browser. Cleared cookies or another device create a new user. The previous listings stay with the old user and are not accessible.
 - There is no logout and no expiration of the token. A session cannot be revoked alone, only all sessions together by a new `SESSION_SECRET`.
 
-Full authorization and registration: see [ROADMAP.md](../ROADMAP.md#production-baseline).
+Full authorization and registration: see [TODO.md](../TODO.md#production-baseline).
