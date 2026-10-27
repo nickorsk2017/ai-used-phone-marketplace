@@ -58,9 +58,50 @@ Deployment goes through GitHub pull requests. Branches:
 - `dev`: development. Feature branches are merged into `dev` through pull requests.
 - `production`: the deployed version. Changes reach `production` only through a pull request from `dev`.
 
-A merge into `production` deploys the new version to the server: the `frontend` and `backend` images are built and the services are restarted with Docker Compose, see [Docker Compose](#docker-compose).
+The images are built on GitHub Actions, not on the server: the server (1 to 2 GB RAM) runs the containers only. Workflow: `.github/workflows/deploy.yml`.
 
-The image platform must match the server architecture (`linux/amd64` or `linux/arm64`).
+- Pull request into `production`: the `frontend` and `backend` images are built without push. A failed build blocks the merge when the check is required in the branch protection of `production`.
+- Push into `production` (merge of the pull request): the images are built and pushed to GitHub Container Registry `ghcr.io/<owner>/<repo>/{backend,frontend}` with the tags `<commit sha>` and `latest`. Then the `deploy` job connects to the server over SSH, copies `docker-compose.yml` and `docker-compose.prod.yml` to `DEPLOY_PATH` and runs `.github/scripts/deploy.sh`.
+- `workflow_dispatch`: manual run of the build and the deployment from the Actions tab.
+
+`.github/scripts/deploy.sh` on the server:
+
+1. Pulls the `backend` and `frontend` images of the commit (`IMAGE_TAG`).
+2. Checks the Backend configuration in a one-off `backend` container (`check_config`).
+3. Starts `db` and applies the Alembic migrations.
+4. Starts the services with `--no-build` and waits until they are healthy.
+5. Deletes the unused images.
+
+`docker-compose.prod.yml` overrides `build` of `backend` and `frontend` with the GHCR images: `${IMAGE_PREFIX}/<service>:${IMAGE_TAG}`. Locally `make up` uses `docker-compose.yml` only and builds the images.
+
+`NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_SITE_URL` are inlined at build time, so on GitHub they are repository variables, not values from `frontend/.env`.
+
+The image platform must match the server architecture: the `DOCKER_PLATFORM` variable, default `linux/amd64`.
+
+### GitHub settings
+
+Environment `production` (Settings, Environments), secrets:
+
+- `SSH_HOST`: server address.
+- `SSH_USER`: deploy user, member of the `docker` group.
+- `SSH_PRIVATE_KEY`: private key of the deploy user, the public key is in `~/.ssh/authorized_keys` on the server.
+- `SSH_PORT`: optional, default `22`.
+
+Repository variables (Settings, Secrets and variables, Actions, Variables):
+
+- `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_SITE_URL`: public URLs of the production site.
+- `DEPLOY_PATH`: optional, default `/opt/marketplace`.
+- `DOCKER_PLATFORM`: optional, default `linux/amd64`.
+
+The GHCR login on the server uses the `GITHUB_TOKEN` of the run: no stored registry token on the server, the login is removed after the pull.
+
+### Server setup
+
+One time, before the first deployment:
+
+1. Install Docker Engine with the Compose plugin.
+2. Create the deploy user, add it to the `docker` group, add the public deploy key.
+3. Create `DEPLOY_PATH` owned by the deploy user and put `backend/.env` in `DEPLOY_PATH/backend/.env`. The server needs no repository checkout and no `frontend/.env`.
 
 ## Server requirements
 
