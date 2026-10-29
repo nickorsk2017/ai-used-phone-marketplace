@@ -6,9 +6,14 @@ Blocks a commit when the ACTIVE task is in a state that must not be committed:
   - open_issues non-empty        (failed validation still pending)
   - stage == DONE                (must close first: `runner.py done`)
 WIP commits mid-task (INIT/PLANNED/APPROVED/EXECUTED/VALIDATED, clean) pass.
+
+Then runs the tests of the applications with staged changes:
+  - backend/  -> `make backend-test` (ruff + pytest, OpenAI and LangSmith are stubbed)
+  - frontend/ -> `pnpm lint`, `pnpm typecheck`, `pnpm test`
+The LLM evaluation (`make eval`) is never run here: it makes real OpenAI calls.
 Install once: `python3 .claude/runner.py install-hooks`.
 """
-import os, sys
+import os, subprocess, sys
 
 ROOT = os.getcwd()  # git runs hooks from the repo root
 ACTIVE = os.path.join(ROOT, ".claude", "tasks", "ACTIVE")
@@ -24,16 +29,16 @@ def block(msg):
     print(f"✖ commit blocked: {msg}", file=sys.stderr)
     sys.exit(1)
 
-def main():
+def check_task():
     if not os.path.isfile(ACTIVE):
-        sys.exit(0)
+        return
     tid = open(ACTIVE).read().strip()
     if not tid:
-        sys.exit(0)  # no active task -> nothing to guard
+        return  # no active task -> nothing to guard
     import glob
     hits = glob.glob(os.path.join(ROOT, ".claude", "tasks", "CURRENT", tid, "STATE.yaml"))
     if not hits:
-        sys.exit(0)  # active id not among open tasks (already archived) -> nothing to guard
+        return  # active id not among open tasks (already archived) -> nothing to guard
     sp = hits[0]
     s = open(sp, encoding="utf-8").read()
     stage = field(s, "stage")
@@ -47,6 +52,36 @@ def main():
     if stage == "DONE":
         block(f"active task '{tid}' is DONE. Close it with "
               f"`python3 .claude/runner.py done` to clear the active task, then commit.")
+
+TESTS = {
+    "backend/": [["make", "backend-test"]],
+    "frontend/": [
+        ["pnpm", "--dir", "frontend", "lint"],
+        ["pnpm", "--dir", "frontend", "typecheck"],
+        ["pnpm", "--dir", "frontend", "test"],
+    ],
+}
+
+def staged_files():
+    out = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMRD"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return [line for line in out.splitlines() if line]
+
+def run_tests():
+    files = staged_files()
+    for prefix, commands in TESTS.items():
+        if not any(f.startswith(prefix) for f in files):
+            continue
+        for cmd in commands:
+            print(f"pre-commit: {' '.join(cmd)}", file=sys.stderr)
+            if subprocess.run(cmd, cwd=ROOT).returncode != 0:
+                block(f"`{' '.join(cmd)}` failed. Fix the tests before committing.")
+
+def main():
+    check_task()
+    run_tests()
     sys.exit(0)
 
 if __name__ == "__main__":

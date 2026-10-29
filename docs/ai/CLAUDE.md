@@ -48,7 +48,7 @@ The task complexity is set from `TASK.md`:
 | --- | --- | --- |
 | `runner.py` | [.claude/runner.py](../../.claude/runner.py) | Task registry and dispatch: `new`, `list`, `use`, `status`, `next`, `done` |
 | Write matrix hook | [.claude/hooks/enforce_matrix.py](../../.claude/hooks/enforce_matrix.py) | PreToolUse on Write and Edit: a role writes only its artifacts, `STATE.yaml` changes only by legal stage transitions |
-| Pre-commit hook | [.claude/githooks/pre-commit](../../.claude/githooks/pre-commit) | Blocks a commit when the active task is `ESCALATED`, has open issues or is `DONE` and not closed |
+| Pre-commit hook | [.claude/githooks/pre-commit](../../.claude/githooks/pre-commit) | Blocks a commit when the active task is `ESCALATED`, has open issues or is `DONE` and not closed. Runs the tests of the applications with staged changes: `make backend-test` for `backend/`, `pnpm lint`, `typecheck` and `test` for `frontend/`. `make eval` is not run: it makes real OpenAI calls |
 | Repository check | [.claude/scripts/ci_check.py](../../.claude/scripts/ci_check.py) | No `ESCALATED` task, no open issues, `DONE` only with `PASS`. The CI workflow that runs it is not in the repository in v1.0 |
 
 Settings: limits, complexity rules and modes in [.claude/SETTINGS.md](../../.claude/SETTINGS.md).
