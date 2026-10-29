@@ -1,5 +1,6 @@
 # Build on GitHub, deploy to the server: docs/INFRA.md#build-and-deployment.
 name: deploy
+run-name: Deploy
 
 on:
   pull_request:
